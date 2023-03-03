@@ -70,7 +70,6 @@ def generate(path: str, neurons: List[SignalSource]):
     neuron_list = []
     ans_list = []
     ans_list.append('`include "lif.v"')
-    #ans_list.append('`define SIG_V signed [V_SIZE-1:0]')
     ans_list.append("module wrapper #(parameter V_SIZE = `DEF_V_SIZE) (")
     ans_list.append("INDENT")
     ans_list.append("input wire clk,")

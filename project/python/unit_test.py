@@ -1,7 +1,9 @@
+import torch as th
+
 from generator import *
 
 
-def test():
+def test_generate_hw3():
     n1 = NeuronDataInput()
     n2 = NeuronDataInput()
     n3 = NeuronDataInput()
@@ -28,5 +30,13 @@ def test():
     neurons = [n1, n2, n3, n4, n5, n6, n7, n8]
     generate("./../verilog/wrapper.v", neurons)
 
+
+def test_grad_compute():
+    a: th.Tensor = th.tensor([1.], requires_grad=True)
+    b: th.Tensor = a * a
+    b.backward(gradient=th.tensor([1]))
+    print(a.grad)
+
+
 if __name__ == "__main__":
-    test()
+    test_grad_compute()
