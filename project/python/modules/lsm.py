@@ -21,6 +21,10 @@ class LSMPool(nn.Module):
         self.init_weights()
 
     def forward(self, x):
+        """
+        :param x: Tensor with size (time_step, batch_size, input_size)
+        :return:
+        """
         # Initialize hidden states at t=0
         mem = self.lif1.init_leaky()
 
@@ -28,16 +32,19 @@ class LSMPool(nn.Module):
         spk_rec = []
         mem_rec = []
 
-        spk = torch.zeros((self.size,))
-
-        spk_time - torch.zeros((self.size,))
+        spk = torch.zeros((x.size(1), self.size))  # (batch_size, neuron_size)
+        spk_time = torch.zeros((x.size(1), self.size))
 
         for step in range(self.optm_param.num_steps):
-            cur1 = self.fc1(torch.concat((x[step], spk)))
+            cur1 = self.fc1(torch.concat((x[step], spk), dim=1))
             spk, mem = self.lif1(cur1, mem)
             spk_rec.append(spk)
             mem_rec.append(mem)
-
+            if self.training:
+                # TODO perform STDP
+                spk_time = (spk_time + 1) * (1 - spk)
+                
+                spk.size()
 
         return torch.stack(spk_rec, dim=0).detach(), torch.stack(mem_rec, dim=0)
 
