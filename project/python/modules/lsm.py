@@ -9,6 +9,13 @@ class LSMNeuron(LinearLeakLIF):
     def __init__(self, beta=1.0, threshold=1.0):
         super().__init__(beta, threshold, None, False, False)
 
+    def forward(self, input_, mem=False):
+        return super().forward(input_, mem)
+
+    def fire(self, mem):
+        spk = super().fire(mem)
+        return spk
+
 
 class LSMPool(nn.Module):
 
