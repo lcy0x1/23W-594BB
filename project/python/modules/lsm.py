@@ -9,13 +9,6 @@ class LSMNeuron(LinearLeakLIF):
     def __init__(self, beta=1.0, threshold=1.0):
         super().__init__(beta, threshold, None, False, False)
 
-    def forward(self, input_, mem=False):
-        return super().forward(input_, mem)
-
-    def fire(self, mem):
-        spk = super().fire(mem)
-        return spk
-
 
 class LSMPool(nn.Module):
 
@@ -37,11 +30,14 @@ class LSMPool(nn.Module):
 
         spk = torch.zeros((self.size,))
 
+        spk_time - torch.zeros((self.size,))
+
         for step in range(self.optm_param.num_steps):
             cur1 = self.fc1(torch.concat((x[step], spk)))
             spk, mem = self.lif1(cur1, mem)
             spk_rec.append(spk)
             mem_rec.append(mem)
+
 
         return torch.stack(spk_rec, dim=0).detach(), torch.stack(mem_rec, dim=0)
 
