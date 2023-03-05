@@ -1,5 +1,10 @@
 from typing import List
 
+"""
+Author: Arthur Wang
+Date: Mar 2
+"""
+
 TYPE_INPUT = "input"
 TYPE_EXCITATORY = "excitatory"
 TYPE_INHIBITORY = "inhibitory"

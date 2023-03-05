@@ -1,6 +1,11 @@
 import snntorch as snn
 import torch
 
+"""
+Author: Arthur Wang
+Date: Mar 2
+"""
+
 
 class LinearLeakLIF(snn.Leaky):
     """

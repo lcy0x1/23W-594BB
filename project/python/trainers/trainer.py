@@ -4,6 +4,11 @@ import torch
 from snntorch import surrogate
 from tqdm import trange
 
+"""
+Author: Arthur Wang
+Date: Mar 1
+"""
+
 
 class OptmParams:
 

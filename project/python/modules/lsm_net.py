@@ -2,6 +2,12 @@ import torch
 from torch import nn
 
 from linear_leak import LinearLeakLIF
+from lsm_hyperparam import STDPLearner, LSMInitializer
+
+"""
+Author: Arthur Wang
+Date: Mar 4
+"""
 
 
 class LSMNeuron(LinearLeakLIF):
@@ -12,7 +18,7 @@ class LSMNeuron(LinearLeakLIF):
 
 class LSMPool(nn.Module):
 
-    def __init__(self, in_size, hidden_size, threshold=16):
+    def __init__(self, in_size, hidden_size, threshold, init: LSMInitializer, stdp: STDPLearner):
         super().__init__()
         # Initialize layers
         self.in_size = in_size
@@ -20,7 +26,8 @@ class LSMPool(nn.Module):
         self.total_size = in_size + hidden_size
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False)
         self.lif = LSMNeuron(threshold=threshold)
-        self.init_weights()
+        init.init_lsm_conn(self.fc1)
+        self.stdp = stdp.stdp
 
     def forward(self, x):
         """
@@ -77,15 +84,3 @@ class LSMPool(nn.Module):
                         self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
 
         return torch.stack(spk_rec, dim=0).detach(), torch.stack(mem_rec, dim=0)
-
-    def stdp(self, weights_old, time_diff):
-        """
-        incrase weights for time_diff > 0, else reduce weights
-        :param weights_old: previous weights
-        :param time_diff: T_post - T_pre
-        :return: updated weights
-        """
-        return weights_old # FIXME
-
-    def init_weights(self):
-        pass  # FIXME
