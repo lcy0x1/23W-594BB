@@ -15,7 +15,7 @@ class LSMInitializer:
 
         :param fc: Linear(in_size + hidden_size, hidden_size), with weight size of (hidden_size, in_size + hidden_size)
         """
-        pass
+        pass  # TODO
 
     def init_readout_weight(self, fc):
         """
@@ -23,7 +23,7 @@ class LSMInitializer:
 
         :param fc: Linear(hidden_size, out_size), with weight size of (out_size, hidden_size)
         """
-        pass
+        pass  # TODO
 
 
 class STDPLearner:
