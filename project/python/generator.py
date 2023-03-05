@@ -28,7 +28,8 @@ class NeuronConnection:
         self.weight = weight
 
     def get_weight(self):
-        return self.weight if self.in_neuron.neuron_type == TYPE_EXCITATORY else -self.weight
+        # return self.weight if self.in_neuron.neuron_type == TYPE_EXCITATORY else -self.weight
+        return self.weight
 
 
 class NeuronDataInput(SignalSource):
@@ -46,7 +47,7 @@ class NeuronDataInput(SignalSource):
 
 class NeuronDataImpl(SignalSource):
 
-    def __init__(self, leak, threshold, neuron_type):
+    def __init__(self, leak, threshold, neuron_type = TYPE_EXCITATORY):
         super().__init__(neuron_type)
         self.leak = leak
         self.threshold = threshold

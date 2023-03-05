@@ -1,6 +1,9 @@
+from typing import List
+
 import torch
 from torch import nn
 
+from generator import SignalSource, NeuronDataInput, NeuronDataImpl, NeuronConnection
 from linear_leak import LinearLeakLIF
 from lsm_hyperparam import STDPLearner, LSMInitializer
 
@@ -84,3 +87,19 @@ class LSMPool(nn.Module):
                         self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
 
         return torch.stack(spk_rec, dim=0).detach(), torch.stack(mem_rec, dim=0)
+
+    def generate(self) -> List[SignalSource]:
+        ans = []
+        for i in range(self.in_size):
+            ans.append(NeuronDataInput())
+        for i in range(self.hidden_size):
+            leak = round(self.lif.beta[i].item())
+            thres = round(self.lif.threshold[i].item())
+            ans.append(NeuronDataImpl(leak, thres))
+        for i in range(self.hidden_size):
+            for j in range(self.in_size + self.hidden_size):
+                ws = round(self.fc1.weight[j][self.in_size + i].item())
+                # TODO regulate weights
+                if ws != 0:
+                    ans[self.in_size + i].add_conn(NeuronConnection(ans[j], ws))
+        return ans

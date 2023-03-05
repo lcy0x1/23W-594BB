@@ -36,6 +36,6 @@ class STDPLearner:
         incrase weights for time_diff > 0, else reduce weights
         :param weights_old: previous weights
         :param time_diff: T_post - T_pre
-        :return: updated weights
+        :return: updated weights (in batch)
         """
         return weights_old  # TODO
