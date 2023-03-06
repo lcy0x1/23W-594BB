@@ -16,7 +16,7 @@ def rand_list(n, rand=npr.RandomState()):
     return ans
 
 
-def select(n, r, initial_num = 0, assigned_num = 1, rand=npr.RandomState()):
+def select(n, r, initial_num=0, assigned_num=1, rand=npr.RandomState()):
     ans = [initial_num] * n
     rarr = rand_list(n, rand)
     for i in range(r):
