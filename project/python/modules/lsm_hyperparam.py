@@ -44,7 +44,7 @@ class LSMInitializer:
             connect_array = self.init_weight_generation(connect_array)
 
             #Check the availability
-            generated = 
+            generated = gu.check_availability(connect_array)
 
         #Update weights to fc
         with torch.no_grad():
