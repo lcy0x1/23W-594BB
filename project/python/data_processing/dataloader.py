@@ -56,7 +56,7 @@ class DataParam:
 
 
 class LoaderCreator:
-    def __init__(self, datapath, num_workers=2):
+    def __init__(self, datapath, num_workers=0):
         """
         @param datapath: the path to dataset
         @param num_workers:

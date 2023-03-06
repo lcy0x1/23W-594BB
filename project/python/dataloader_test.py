@@ -1,11 +1,12 @@
-from data_processing.dataloader import LoaderCreator, DataParam
-from dataloader_test_model import CNN2DAudioClassifier
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
-DATAPATH = '../Datasets/audio/'
+from data_processing.dataloader import LoaderCreator, DataParam
+from data_processing.dataloader_test_model import CNN2DAudioClassifier
+
+DATAPATH = './Datasets/audio/'
 
 if torch.cuda.is_available():
     print("Using CUDA device")
