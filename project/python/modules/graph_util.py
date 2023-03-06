@@ -24,8 +24,10 @@ def select(n, r, initial_num=0, assigned_num=1, rand=npr.RandomState()):
     return ans
 
 
-def check_availability(n):
-    return True
+def check_availability(matrix):
+    hidden = matrix.shape[0]
+    pre = matrix.shape[1] - hidden
+    return connectivity(pre, hidden, matrix)
 
 
 def connectivity(pre, hidden, matrix):
