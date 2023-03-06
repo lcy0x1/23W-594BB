@@ -19,7 +19,8 @@ class LinearLeakLIF(snn.Leaky):
             threshold=1.0,
             spike_grad=None,
             learn_beta=False,
-            learn_threshold=False
+            learn_threshold=False,
+            state_quant=torch.relu,
     ):
         super().__init__(
             beta=beta,
@@ -30,7 +31,7 @@ class LinearLeakLIF(snn.Leaky):
             learn_beta=learn_beta,
             learn_threshold=learn_threshold,
             reset_mechanism="zero",
-            state_quant=torch.relu,
+            state_quant=state_quant,
             output=False
         )
 

@@ -15,8 +15,8 @@ Date: Mar 4
 
 class LSMNeuron(LinearLeakLIF):
 
-    def __init__(self, beta=1.0, threshold=1.0):
-        super().__init__(beta, threshold, None, False, False)
+    def __init__(self, beta=1.0, threshold=1.0, state_quant=torch.relu):
+        super().__init__(beta, threshold, None, False, False, state_quant == state_quant)
 
 
 class LSMPool(nn.Module):
