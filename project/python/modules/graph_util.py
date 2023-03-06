@@ -23,6 +23,9 @@ def select(n, r, rand=npr.RandomState()):
         ans[rarr[i]] = 1
     return ans
 
+def check_availability(n):
+    return True
+
 
 def connectivity(n, matrix):
     visited = [0] * n

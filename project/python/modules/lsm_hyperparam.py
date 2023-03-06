@@ -1,3 +1,8 @@
+import torch
+from torch import nn
+import numpy as np
+import random
+import graph_util as gu
 class LSMInitializer:
 
     def __init__(self, in_size, hidden_size, out_size, fan_in):
@@ -7,7 +12,18 @@ class LSMInitializer:
         self.fan_in = fan_in
         pass
 
-    def init_lsm_conn(self, fc):
+    def init_weight_generation(self, connect_array, weights_LB = 1, weights_UB = 2):
+        """
+        Generate weights with given connection map
+        """
+        with np.nditer(connect_array, op_flags=['readwrite']) as it:
+            for x in it:
+                if x > 0:
+                    x = random.uniform(weights_LB,weights_UB)
+        
+        return connect_array
+
+    def init_lsm_conn(self, fc, weights_LB = 1, weights_UB = 2):
         """
         Initialize connections.
         Be aware of the initial weights, sign of weights, number of inputs, and potential feedback loops.
@@ -15,7 +31,24 @@ class LSMInitializer:
 
         :param fc: Linear(in_size + hidden_size, hidden_size), with weight size of (hidden_size, in_size + hidden_size)
         """
-        pass  # TODO
+        np.random.seed(114514)
+        connect_array = np.zeros(list(fc.weight.shape)[0],list(fc.weight.shape)[1])
+        generated = False
+
+        while not generated:
+            # Graph Generation
+            for i in connect_array.shape[0]:
+                connect_array[i,:] = gu.select(connect_array.shape[1],16)
+
+            #Generate weights
+            connect_array = self.init_weight_generation(connect_array)
+
+            #Check the availability
+            generated = gu.check_availability(connect_array)
+
+        #Update weights to fc
+        with torch.no_grad():
+            fc.weight = torch.from_numpy(connect_array)
 
     def init_readout_weight(self, fc):
         """
