@@ -1,5 +1,6 @@
-import random
 import math
+import random
+
 import numpy as np
 import torch
 
@@ -8,18 +9,15 @@ import graph_util as gu
 
 class LSMInitParams:
 
-    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib, tp, tn):
+    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib):
         self.in_size = in_size
         self.hidden_size = hidden_size
         self.out_size = out_size
         self.seed = seed
         self.fan_in = fan_in
-        self.wlo = wlo  #weight bound
-        self.whi = whi  #weight bound
-        self.inhib = inhib #number of inhibitary
-        self.tp = tp  #tau+ for stdp
-        self.tn = tn  #tau- for stdp
-
+        self.wlo = wlo  # weight bound
+        self.whi = whi  # weight bound
+        self.inhib = inhib  # number of inhibitary
 
 
 class LSMInitializer:
@@ -90,7 +88,7 @@ class LSMInitializer:
 
         # Update weights to fc
         with torch.no_grad():
-            fc.weight = torch.from_numpy(connect_array)    
+            fc.weight = torch.from_numpy(connect_array)
 
     def get_lsm_threshold(self):  # TODO
         pass
@@ -101,7 +99,17 @@ class LSMInitializer:
 
 class STDPLearner:
 
-    def __init__(self):
+    def __init__(self, ap, an, tp, tn):
+        """
+        :param ap: A+ for STDP. Must be positive.
+        :param an: A- for STDP. Must be positive.
+        :param tp: tau+ fot STDP. Must be positive.
+        :param tn: tau- fot STDP. Must be positive.
+        """
+        self.ap = ap
+        self.an = an
+        self.tp = tp
+        self.tn = tn
         pass
 
     def stdp(self, weights_old, time_diff):
@@ -111,9 +119,6 @@ class STDPLearner:
         :param time_diff: T_post - T_pre
         :return: updated weights (in batch)
         """
-        if time_diff > 0:
-            weights_new += weights_old * math.exp(time_diff/self.param.tp)
-        else:
-            weights_new -= weights_old * math.exp(-time_diff/self.param.tn)
-
-        return weights_new
+        pos = self.ap * math.exp(abs(time_diff) / self.tp)
+        neg = -self.an * math.exp(abs(time_diff) / self.tn)
+        return weights_old * (1 + pos * (time_diff > 0) + neg * (time_diff < 0))

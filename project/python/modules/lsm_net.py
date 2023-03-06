@@ -1,9 +1,7 @@
-from typing import List
-
 import torch
 from torch import nn
 
-from generator import SignalSource, NeuronDataInput, NeuronDataImpl, NeuronConnection
+from generator import *
 from linear_leak import LinearLeakLIF
 from lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
 
@@ -144,10 +142,19 @@ class LSMPool(nn.Module):
         for i in range(self.hidden_size):
             leak = round(self.lsm.beta[i].item())
             thres = round(self.lsm.threshold[i].item())
-            ans.append(NeuronDataImpl(leak, thres))
+            ans.append(NeuronHidden(leak, thres))
+        for i in range(self.out_size):
+            leak = round(self.readout.beta[i].item())
+            thres = round(self.readout.threshold[i].item())
+            ans.append(NeuronReadout(leak, thres))
         for i in range(self.hidden_size):
             for j in range(self.in_size + self.hidden_size):
                 ws = round(self.fc1.weight[j][self.in_size + i].item())
                 if ws != 0:
                     ans[self.in_size + i].add_conn(NeuronConnection(ans[j], ws))
+        for i in range(self.out_size):
+            for j in range(self.hidden_size):
+                ws = round(self.fc1.weight[j][i].item())
+                if ws != 0:
+                    ans[self.in_size + self.hidden_size + i].add_conn(NeuronConnection(ans[self.in_size + j], ws))
         return ans
