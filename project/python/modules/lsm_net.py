@@ -5,7 +5,7 @@ from torch import nn
 
 from generator import SignalSource, NeuronDataInput, NeuronDataImpl, NeuronConnection
 from linear_leak import LinearLeakLIF
-from lsm_hyperparam import STDPLearner, LSMInitializer
+from lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
 
 """
 Author: Arthur Wang
@@ -16,20 +16,29 @@ Date: Mar 4
 class LSMNeuron(LinearLeakLIF):
 
     def __init__(self, beta=1.0, threshold=1.0, state_quant=torch.relu):
-        super().__init__(beta, threshold, None, False, False, state_quant == state_quant)
+        super().__init__(beta, threshold, None, False, False, state_quant=state_quant)
 
 
 class LSMPool(nn.Module):
 
-    def __init__(self, in_size, hidden_size, threshold, init: LSMInitializer, stdp: STDPLearner):
+    def __init__(self, optm, param: LSMInitParams, init: LSMInitializer, stdp: STDPLearner):
         super().__init__()
         # Initialize layers
-        self.in_size = in_size
-        self.hidden_size = hidden_size
-        self.total_size = in_size + hidden_size
+        self.in_size = param.in_size
+        self.hidden_size = param.hidden_size
+        self.out_size = param.out_size
+        self.total_size = self.in_size + self.hidden_size
+        self.optm_param = optm
+
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False)
-        self.lif = LSMNeuron(threshold=threshold)
+        self.lsm = LSMNeuron(beta=1.0, threshold=init.get_lsm_threshold())
+        self.fc2 = nn.Linear(self.hidden_size, self.ou)
+        self.readout = LinearLeakLIF(beta=1.0, threshold=init.get_readout_threshold(),
+                                     spike_grad=optm.grad, learn_beta=False,
+                                     learn_threshold=True)
+
         init.init_lsm_conn(self.fc1)
+        init.init_readout_weight(self.fc2)
         self.stdp = stdp.stdp
 
     def forward(self, x):
@@ -42,9 +51,15 @@ class LSMPool(nn.Module):
         batch_size = x.size(1)
         max_t = self.optm_param.num_steps
         assert x.size() == (max_t, batch_size, self.in_size)
+        with torch.no_grad():
+            x, _ = self.forward_lsm(max_t, x)
+        x, _ = self.forward_readout(max_t, x)
+        return x
+
+    def forward_lsm(self, max_t, x):
 
         # Initialize hidden states at t=0
-        mem = self.lif.init_leaky()
+        mem1 = self.lsm.init_leaky()
 
         # Record the final layer
         spk_rec = []
@@ -64,10 +79,10 @@ class LSMPool(nn.Module):
             # pass through weights
             cur = self.fc1(spk)
             # generate spike
-            spk_hidden, mem = self.lif(cur, mem)
+            spk_hidden, mem1 = self.lsm(cur, mem1)
             # record spikes
             spk_rec.append(spk_hidden)
-            mem_rec.append(mem)
+            mem_rec.append(mem1)
             # get next spike now, for training purpose
             if step + 1 == max_t:
                 spk_in = torch.zeros((x.size(1), self.in_size))
@@ -78,28 +93,50 @@ class LSMPool(nn.Module):
             # STDP implementation
             if self.training:
                 spk_time = (spk_time + 1) * (1 - spk)
-                for pre in range(self.total_size):
-                    if round(spk_time[pre].item()) == 0:
-                        time_slice = spk_time[self.in_size:self.total_size]
-                        self.fc1.weight.T[pre] = self.stdp(self.fc1.weight.T[pre], -time_slice)
-                for post in range(self.hidden_size):
-                    if round(spk_time[self.in_size + post].item()) == 0:
-                        self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
+                self.perform_stdp(spk_time)
 
-        return torch.stack(spk_rec, dim=0).detach(), torch.stack(mem_rec, dim=0)
+        return torch.stack(spk_rec, dim=0), torch.stack(mem_rec, dim=0)
+
+    def forward_readout(self, max_t, x):
+
+        # Initialize hidden states at t=0
+        mem2 = self.readout.init_leaky()
+
+        # Record the final layer
+        spk_rec = []
+        mem_rec = []
+
+        for step in range(max_t):
+            # pass through weights
+            cur = self.fc2(x[step])
+            # generate spike
+            spk, mem2 = self.lsm(cur, mem2)
+            # record spikes
+            spk_rec.append(spk)
+            mem_rec.append(mem2)
+
+        return torch.stack(spk_rec, dim=0), torch.stack(mem_rec, dim=0)
+
+    def perform_stdp(self, spk_time):
+        for pre in range(self.total_size):
+            if round(spk_time[pre].item()) == 0:
+                time_slice = spk_time[self.in_size:self.total_size]
+                self.fc1.weight.T[pre] = self.stdp(self.fc1.weight.T[pre], -time_slice)
+        for post in range(self.hidden_size):
+            if round(spk_time[self.in_size + post].item()) == 0:
+                self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
 
     def generate(self) -> List[SignalSource]:
         ans = []
         for i in range(self.in_size):
             ans.append(NeuronDataInput())
         for i in range(self.hidden_size):
-            leak = round(self.lif.beta[i].item())
-            thres = round(self.lif.threshold[i].item())
+            leak = round(self.lsm.beta[i].item())
+            thres = round(self.lsm.threshold[i].item())
             ans.append(NeuronDataImpl(leak, thres))
         for i in range(self.hidden_size):
             for j in range(self.in_size + self.hidden_size):
                 ws = round(self.fc1.weight[j][self.in_size + i].item())
-                # TODO regulate weights
                 if ws != 0:
                     ans[self.in_size + i].add_conn(NeuronConnection(ans[j], ws))
         return ans

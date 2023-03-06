@@ -8,7 +8,10 @@ import graph_util as gu
 
 class LSMInitParams:
 
-    def __init__(self, seed, fan_in, wlo, whi, inhib):
+    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib):
+        self.in_size = in_size
+        self.hidden_size = hidden_size
+        self.out_size = out_size
         self.seed = seed
         self.fan_in = fan_in
         self.wlo = wlo
@@ -18,10 +21,10 @@ class LSMInitParams:
 
 class LSMInitializer:
 
-    def __init__(self, in_size, hidden_size, out_size, param: LSMInitParams):
-        self.in_size = in_size
-        self.hidden_size = hidden_size
-        self.out_size = out_size
+    def __init__(self, param: LSMInitParams):
+        self.in_size = param.in_size
+        self.hidden_size = param.hidden_size
+        self.out_size = param.out_size
         self.param = param
         pass
 
@@ -31,7 +34,7 @@ class LSMInitializer:
         """
         with np.nditer(connect_array, op_flags=['readwrite']) as it:
             for x in it:
-                x[...] = x * random.uniform(self.param.wlo, self.param.whi) 
+                x[...] = x * random.uniform(self.param.wlo, self.param.whi)
 
         return connect_array
 
@@ -54,10 +57,10 @@ class LSMInitializer:
 
         while not generated:
             # Graph Generation
-            id = input_neuron_size-1 #Record which neuron is selected (in in_size + hidden_size)
+            id = input_neuron_size - 1  # Record which neuron is selected (in in_size + hidden_size)
             for i in connect_array.shape[0]:
                 id += 1
-                connection_selection = gu.select(connect_array.shape[1]-1, self.param.fan_in)
+                connection_selection = gu.select(connect_array.shape[1] - 1, self.param.fan_in)
                 connection_selection_padding = connection_selection[:id] + [0] + connection_selection[id:]
                 connect_array[i, :] = np.multiply(connection_selection_padding, neuron_list)
 
@@ -78,6 +81,12 @@ class LSMInitializer:
         :param fc: Linear(hidden_size, out_size), with weight size of (out_size, hidden_size)
         """
         pass  # TODO
+
+    def get_lsm_threshold(self):  # TODO
+        pass
+
+    def get_readout_threshold(self):  # TODO
+        pass
 
 
 class STDPLearner:
