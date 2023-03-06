@@ -1,15 +1,14 @@
-import torch.utils.data
 from torch.utils.data import DataLoader, Dataset, random_split
-
 from data_processing.datahandler import AudioHandler
 
 
 class AudioMNIST(Dataset):
     def __init__(self, datapath, load_entire_filetree=False):
+        self.datapath = datapath
         self.files = self._build_files()
         self.audio_len = 48000
         self.shift_ptc = 0.4
-        self.datapath = datapath
+        
 
     def _build_files(self):
         files = {}
