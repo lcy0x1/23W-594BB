@@ -1,5 +1,10 @@
 import numpy.random as npr
 
+"""
+Author: Arthur Wang
+Date: Mar 5
+"""
+
 
 def rand_list(n, rand=npr.RandomState()):
     ans = [i for i in range(n)]
@@ -22,3 +27,7 @@ def check_availability(n):
     return True
 
 
+def connectivity(n, matrix):
+    visited = [0] * n
+    queue = []
+    
