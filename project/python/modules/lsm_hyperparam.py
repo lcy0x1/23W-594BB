@@ -1,3 +1,4 @@
+import math
 import random
 
 import numpy as np
@@ -8,20 +9,23 @@ import graph_util as gu
 
 class LSMInitParams:
 
-    def __init__(self, seed, fan_in, wlo, whi, inhib):
+    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib):
+        self.in_size = in_size
+        self.hidden_size = hidden_size
+        self.out_size = out_size
         self.seed = seed
         self.fan_in = fan_in
-        self.wlo = wlo
-        self.whi = whi
-        self.inhib = inhib
+        self.wlo = wlo  # weight bound
+        self.whi = whi  # weight bound
+        self.inhib = inhib  # number of inhibitary
 
 
 class LSMInitializer:
 
-    def __init__(self, in_size, hidden_size, out_size, param: LSMInitParams):
-        self.in_size = in_size
-        self.hidden_size = hidden_size
-        self.out_size = out_size
+    def __init__(self, param: LSMInitParams):
+        self.in_size = param.in_size
+        self.hidden_size = param.hidden_size
+        self.out_size = param.out_size
         self.param = param
         pass
 
@@ -31,7 +35,7 @@ class LSMInitializer:
         """
         with np.nditer(connect_array, op_flags=['readwrite']) as it:
             for x in it:
-                x[...] = x * random.uniform(self.param.wlo, self.param.whi) 
+                x[...] = x * random.uniform(self.param.wlo, self.param.whi)
 
         return connect_array
 
@@ -54,10 +58,10 @@ class LSMInitializer:
 
         while not generated:
             # Graph Generation
-            id = input_neuron_size-1 #Record which neuron is selected (in in_size + hidden_size)
+            id = input_neuron_size - 1  # Record which neuron is selected (in in_size + hidden_size)
             for i in connect_array.shape[0]:
                 id += 1
-                connection_selection = gu.select(connect_array.shape[1]-1, self.param.fan_in)
+                connection_selection = gu.select(connect_array.shape[1] - 1, self.param.fan_in)
                 connection_selection_padding = connection_selection[:id] + [0] + connection_selection[id:]
                 connect_array[i, :] = np.multiply(connection_selection_padding, neuron_list)
 
@@ -77,12 +81,39 @@ class LSMInitializer:
 
         :param fc: Linear(hidden_size, out_size), with weight size of (out_size, hidden_size)
         """
-        pass  # TODO
+        connect_array = np.ones((fc.weight.size(0), fc.weight.size(1)))
+
+        # Generate weights
+        connect_array = self.init_weight_generation(connect_array)
+
+        # Update weights to fc
+        with torch.no_grad():
+            fc.weight = torch.from_numpy(connect_array)
+
+    def get_lsm_threshold(self):  # TODO
+        pass
+
+    def get_readout_threshold(self):  # TODO
+        pass
 
 
 class STDPLearner:
 
-    def __init__(self):
+    def __init__(self, ap, an, tp, tn, wmax, wmin):
+        """
+        :param ap: A+ for STDP. Must be positive.
+        :param an: A- for STDP. Must be positive.
+        :param tp: tau+ fot STDP. Must be positive.
+        :param tn: tau- fot STDP. Must be positive.
+        :param wmax: max absolute value for weights, higher value capped. Must be positive.
+        :param wmin: min absolute value for weights, lower value disconnects. Must be positive.
+        """
+        self.ap = ap
+        self.an = an
+        self.tp = tp
+        self.tn = tn
+        self.wmax = wmax
+        self.wmin = wmin
         pass
 
     def stdp(self, weights_old, time_diff):
@@ -92,4 +123,13 @@ class STDPLearner:
         :param time_diff: T_post - T_pre
         :return: updated weights (in batch)
         """
-        return weights_old  # TODO
+
+        # plasticity rule
+        pos = self.ap * math.exp(abs(time_diff) / self.tp)
+        neg = -self.an * math.exp(abs(time_diff) / self.tn)
+        ans = weights_old * (1 + pos * (time_diff > 0) + neg * (time_diff < 0))
+        # clamp
+        cpos = torch.clamp(ans, self.wmin, self.wmax)
+        cneg = torch.clamp(ans, -self.wmax, -self.wmin)
+        ans = cpos * (ans > 0) + cneg * (ans < 0)
+        return ans
