@@ -2,33 +2,30 @@
 module wrapper #(parameter V_SIZE = `DEF_V_SIZE) (
 	input wire clk,
 	input wire rstn,
-	input wire spike_001,
-	input wire spike_002,
-	input wire spike_003
+	input wire [2:0] spikes_i
+	output wire [1:0] spikes_o
 );
-wire spike_004;
-parameter `SIG_V w_001_004 = 3;
-parameter `SIG_V w_002_004 = 3;
-parameter `SIG_V w_003_004 = 2;
-lif #(V_SIZE,8,1) n004 (clk, rstn, (spike_001 ? w_001_004 : {V_SIZE{1'b0}}) + (spike_002 ? w_002_004 : {V_SIZE{1'b0}}) + (spike_003 ? w_003_004 : {V_SIZE{1'b0}}), spike_004);
-wire spike_005;
-parameter `SIG_V w_001_005 = 1;
-parameter `SIG_V w_002_005 = 2;
-parameter `SIG_V w_003_005 = 3;
-lif #(V_SIZE,8,1) n005 (clk, rstn, (spike_001 ? w_001_005 : {V_SIZE{1'b0}}) + (spike_002 ? w_002_005 : {V_SIZE{1'b0}}) + (spike_003 ? w_003_005 : {V_SIZE{1'b0}}), spike_005);
-wire spike_006;
-parameter `SIG_V w_001_006 = 4;
-parameter `SIG_V w_002_006 = 3;
-parameter `SIG_V w_003_006 = 4;
-lif #(V_SIZE,8,1) n006 (clk, rstn, (spike_001 ? w_001_006 : {V_SIZE{1'b0}}) + (spike_002 ? w_002_006 : {V_SIZE{1'b0}}) + (spike_003 ? w_003_006 : {V_SIZE{1'b0}}), spike_006);
-wire spike_007;
-parameter `SIG_V w_004_007 = 3;
-parameter `SIG_V w_005_007 = 2;
-parameter `SIG_V w_006_007 = 3;
-lif #(V_SIZE,8,1) n007 (clk, rstn, (spike_004 ? w_004_007 : {V_SIZE{1'b0}}) + (spike_005 ? w_005_007 : {V_SIZE{1'b0}}) + (spike_006 ? w_006_007 : {V_SIZE{1'b0}}), spike_007);
-wire spike_008;
-parameter `SIG_V w_004_008 = 2;
-parameter `SIG_V w_005_008 = 4;
-parameter `SIG_V w_006_008 = 2;
-lif #(V_SIZE,8,1) n008 (clk, rstn, (spike_004 ? w_004_008 : {V_SIZE{1'b0}}) + (spike_005 ? w_005_008 : {V_SIZE{1'b0}}) + (spike_006 ? w_006_008 : {V_SIZE{1'b0}}), spike_008);
+wire spike_000;
+parameter `SIG_V w_00i_000 = 3;
+parameter `SIG_V w_01i_000 = 3;
+parameter `SIG_V w_02i_000 = 2;
+lif #(V_SIZE,8,1) n000 (clk, rstn, (spikes_i[0] ? w_00i_000 : {V_SIZE{1'b0}}) + (spikes_i[1] ? w_01i_000 : {V_SIZE{1'b0}}) + (spikes_i[2] ? w_02i_000 : {V_SIZE{1'b0}}), spike_000);
+wire spike_001;
+parameter `SIG_V w_00i_001 = 1;
+parameter `SIG_V w_01i_001 = 2;
+parameter `SIG_V w_02i_001 = 3;
+lif #(V_SIZE,8,1) n001 (clk, rstn, (spikes_i[0] ? w_00i_001 : {V_SIZE{1'b0}}) + (spikes_i[1] ? w_01i_001 : {V_SIZE{1'b0}}) + (spikes_i[2] ? w_02i_001 : {V_SIZE{1'b0}}), spike_001);
+wire spike_002;
+parameter `SIG_V w_00i_002 = 4;
+parameter `SIG_V w_01i_002 = 3;
+parameter `SIG_V w_02i_002 = 4;
+lif #(V_SIZE,8,1) n002 (clk, rstn, (spikes_i[0] ? w_00i_002 : {V_SIZE{1'b0}}) + (spikes_i[1] ? w_01i_002 : {V_SIZE{1'b0}}) + (spikes_i[2] ? w_02i_002 : {V_SIZE{1'b0}}), spike_002);
+parameter `SIG_V w_000_00o = 3;
+parameter `SIG_V w_001_00o = 2;
+parameter `SIG_V w_002_00o = 3;
+lif #(V_SIZE,8,1) n00o (clk, rstn, (spike_000 ? w_000_00o : {V_SIZE{1'b0}}) + (spike_001 ? w_001_00o : {V_SIZE{1'b0}}) + (spike_002 ? w_002_00o : {V_SIZE{1'b0}}), spikes_o[0]);
+parameter `SIG_V w_000_01o = 2;
+parameter `SIG_V w_001_01o = 4;
+parameter `SIG_V w_002_01o = 2;
+lif #(V_SIZE,8,1) n01o (clk, rstn, (spike_000 ? w_000_01o : {V_SIZE{1'b0}}) + (spike_001 ? w_001_01o : {V_SIZE{1'b0}}) + (spike_002 ? w_002_01o : {V_SIZE{1'b0}}), spikes_o[1]);
 endmodule
