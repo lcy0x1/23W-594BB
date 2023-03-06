@@ -31,7 +31,7 @@ class LSMInitializer:
         """
         with np.nditer(connect_array, op_flags=['readwrite']) as it:
             for x in it:
-                x = x * random.uniform(self.param.wlo, self.param.whi)  # FIXME does it write back?
+                x[...] = x * random.uniform(self.param.wlo, self.param.whi) 
 
         return connect_array
 
@@ -45,16 +45,21 @@ class LSMInitializer:
         """
         np.random.seed(self.param.seed)
         connect_array = np.zeros((fc.weight.size(0), fc.weight.size(1)))
+        input_neuron_size = connect_array.shape[1] - connect_array.shape[0]
         generated = False
 
         # Choose inhibitory neurons
         select_neuron = gu.select(connect_array.shape[0], self.param.inhib, 1, -1)
-        neuron_list = [1] * (connect_array.shape[1] - connect_array.shape[0]) + select_neuron
+        neuron_list = [1] * input_neuron_size + select_neuron
 
         while not generated:
             # Graph Generation
+            id = input_neuron_size-1 #Record which neuron is selected (in in_size + hidden_size)
             for i in connect_array.shape[0]:
-                connect_array[i, :] = np.multiply(gu.select(connect_array.shape[1], self.param.fan_in), neuron_list)
+                id += 1
+                connection_selection = gu.select(connect_array.shape[1]-1, self.param.fan_in)
+                connection_selection_padding = connection_selection[:id] + [0] + connection_selection[id:]
+                connect_array[i, :] = np.multiply(connection_selection_padding, neuron_list)
 
             # Check the availability
             generated = gu.check_availability(connect_array)
