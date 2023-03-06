@@ -1,5 +1,5 @@
 import random
-
+import math
 import numpy as np
 import torch
 
@@ -8,15 +8,18 @@ import graph_util as gu
 
 class LSMInitParams:
 
-    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib):
+    def __init__(self, in_size, hidden_size, out_size, seed, fan_in, wlo, whi, inhib, tp, tn):
         self.in_size = in_size
         self.hidden_size = hidden_size
         self.out_size = out_size
         self.seed = seed
         self.fan_in = fan_in
-        self.wlo = wlo
-        self.whi = whi
-        self.inhib = inhib
+        self.wlo = wlo  #weight bound
+        self.whi = whi  #weight bound
+        self.inhib = inhib #number of inhibitary
+        self.tp = tp  #tau+ for stdp
+        self.tn = tn  #tau- for stdp
+
 
 
 class LSMInitializer:
@@ -80,7 +83,14 @@ class LSMInitializer:
 
         :param fc: Linear(hidden_size, out_size), with weight size of (out_size, hidden_size)
         """
-        pass  # TODO
+        connect_array = np.ones((fc.weight.size(0), fc.weight.size(1)))
+
+        # Generate weights
+        connect_array = self.init_weight_generation(connect_array)
+
+        # Update weights to fc
+        with torch.no_grad():
+            fc.weight = torch.from_numpy(connect_array)    
 
     def get_lsm_threshold(self):  # TODO
         pass
@@ -101,4 +111,9 @@ class STDPLearner:
         :param time_diff: T_post - T_pre
         :return: updated weights (in batch)
         """
-        return weights_old  # TODO
+        if time_diff > 0:
+            weights_new += weights_old * math.exp(time_diff/self.param.tp)
+        else:
+            weights_new -= weights_old * math.exp(-time_diff/self.param.tn)
+
+        return weights_new
