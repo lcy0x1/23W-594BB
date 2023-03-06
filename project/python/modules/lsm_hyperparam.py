@@ -18,12 +18,11 @@ class LSMInitializer:
         """
         with np.nditer(connect_array, op_flags=['readwrite']) as it:
             for x in it:
-                if x > 0:
-                    x = random.uniform(weights_LB,weights_UB)
+                x = x*random.uniform(weights_LB,weights_UB)
         
         return connect_array
 
-    def init_lsm_conn(self, fc, weights_LB = 1, weights_UB = 2):
+    def init_lsm_conn(self, fc, weights_LB = 1, weights_UB = 2, inhibitory_num = 8):
         """
         Initialize connections.
         Be aware of the initial weights, sign of weights, number of inputs, and potential feedback loops.
@@ -35,16 +34,20 @@ class LSMInitializer:
         connect_array = np.zeros(list(fc.weight.shape)[0],list(fc.weight.shape)[1])
         generated = False
 
+        #Choose inhibitory neurons
+        select_neuron = gu.select(connect_array.shape[0],inhibitory_num, 1, -1)
+        neuron_list = [1] * (connect_array.shape[1] - connect_array.shape[0]) + select_neuron
+
         while not generated:
             # Graph Generation
             for i in connect_array.shape[0]:
-                connect_array[i,:] = gu.select(connect_array.shape[1],16)
-
-            #Generate weights
-            connect_array = self.init_weight_generation(connect_array)
+                connect_array[i,:] = np.multiply(gu.select(connect_array.shape[1],16),neuron_list)
 
             #Check the availability
             generated = gu.check_availability(connect_array)
+
+        #Generate weights
+        connect_array = self.init_weight_generation(connect_array)
 
         #Update weights to fc
         with torch.no_grad():
