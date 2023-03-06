@@ -40,6 +40,7 @@ class LSMPool(nn.Module):
         init.init_lsm_conn(self.fc1)
         init.init_readout_weight(self.fc2)
         self.stdp = stdp.stdp
+        self.lsm_learning = True
 
     def forward(self, x):
         """
@@ -48,15 +49,24 @@ class LSMPool(nn.Module):
         :return:
         """
 
+        self.lsm_learning = False
         batch_size = x.size(1)
         max_t = self.optm_param.num_steps
         assert x.size() == (max_t, batch_size, self.in_size)
         with torch.no_grad():
-            x, _ = self.forward_lsm(max_t, x)
+            x, _ = self.forward_lsm(max_t, batch_size, x)
         x, _ = self.forward_readout(max_t, x)
         return x
 
-    def forward_lsm(self, max_t, x):
+    def lsm_train(self, x):
+        self.lsm_learning = True
+        batch_size = x.size(1)
+        max_t = self.optm_param.num_steps
+        assert x.size() == (max_t, batch_size, self.in_size)
+        with torch.no_grad():
+            self.forward_lsm(max_t, batch_size, x)
+
+    def forward_lsm(self, max_t, batch_size, x):
 
         # Initialize hidden states at t=0
         mem1 = self.lsm.init_leaky()
@@ -66,13 +76,13 @@ class LSMPool(nn.Module):
         mem_rec = []
 
         # output spike for hidden layers
-        spk_hidden = torch.zeros((x.size(1), self.hidden_size))  # (batch_size, neuron_size)
+        spk_hidden = torch.zeros((batch_size, self.hidden_size))  # (batch_size, neuron_size)
         # time since previous spike
-        spk_time = torch.zeros((x.size(1), self.total_size)) + max_t
+        spk_time = torch.zeros((batch_size, self.total_size)) + max_t
         # merged spike
         spk = torch.concat((x[0], spk_hidden), dim=1)
         # initialize spike time
-        if self.training:
+        if self.lsm_learning:
             spk_time = (spk_time + 1) * (1 - spk)
 
         for step in range(max_t):
@@ -85,15 +95,16 @@ class LSMPool(nn.Module):
             mem_rec.append(mem1)
             # get next spike now, for training purpose
             if step + 1 == max_t:
-                spk_in = torch.zeros((x.size(1), self.in_size))
+                spk_in = torch.zeros((batch_size, self.in_size))
             else:
                 spk_in = x[step + 1]
             spk = torch.concat((spk_in, spk_hidden), dim=1)
 
             # STDP implementation
-            if self.training:
+            if self.lsm_learning:
                 spk_time = (spk_time + 1) * (1 - spk)
-                self.perform_stdp(spk_time)
+                for batch in range(batch_size):
+                    self.perform_stdp(spk_time[batch])
 
         return torch.stack(spk_rec, dim=0), torch.stack(mem_rec, dim=0)
 
