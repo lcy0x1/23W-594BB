@@ -99,17 +99,21 @@ class LSMInitializer:
 
 class STDPLearner:
 
-    def __init__(self, ap, an, tp, tn):
+    def __init__(self, ap, an, tp, tn, wmax, wmin):
         """
         :param ap: A+ for STDP. Must be positive.
         :param an: A- for STDP. Must be positive.
         :param tp: tau+ fot STDP. Must be positive.
         :param tn: tau- fot STDP. Must be positive.
+        :param wmax: max absolute value for weights, higher value capped. Must be positive.
+        :param wmin: min absolute value for weights, lower value disconnects. Must be positive.
         """
         self.ap = ap
         self.an = an
         self.tp = tp
         self.tn = tn
+        self.wmax = wmax
+        self.wmin = wmin
         pass
 
     def stdp(self, weights_old, time_diff):
@@ -119,6 +123,13 @@ class STDPLearner:
         :param time_diff: T_post - T_pre
         :return: updated weights (in batch)
         """
+
+        # plasticity rule
         pos = self.ap * math.exp(abs(time_diff) / self.tp)
         neg = -self.an * math.exp(abs(time_diff) / self.tn)
-        return weights_old * (1 + pos * (time_diff > 0) + neg * (time_diff < 0))
+        ans = weights_old * (1 + pos * (time_diff > 0) + neg * (time_diff < 0))
+        # clamp
+        cpos = torch.clamp(ans, self.wmin, self.wmax)
+        cneg = torch.clamp(ans, -self.wmax, -self.wmin)
+        ans = cpos * (ans > 0) + cneg * (ans < 0)
+        return ans
