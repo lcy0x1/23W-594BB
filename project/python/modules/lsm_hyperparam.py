@@ -1,29 +1,40 @@
-import torch
-from torch import nn
-import numpy as np
 import random
+
+import numpy as np
+import torch
+
 import graph_util as gu
+
+
+class LSMInitParams:
+
+    def __init__(self, seed, fan_in, wlo, whi):
+        self.seed = seed
+        self.fan_in = fan_in
+        self.wlo = wlo
+        self.whi = whi
+
+
 class LSMInitializer:
 
-    def __init__(self, in_size, hidden_size, out_size, fan_in):
+    def __init__(self, in_size, hidden_size, out_size, param: LSMInitParams):
         self.in_size = in_size
         self.hidden_size = hidden_size
         self.out_size = out_size
-        self.fan_in = fan_in
+        self.param = param
         pass
 
-    def init_weight_generation(self, connect_array, weights_LB = 1, weights_UB = 2):
+    def init_weight_generation(self, connect_array):
         """
         Generate weights with given connection map
         """
         with np.nditer(connect_array, op_flags=['readwrite']) as it:
             for x in it:
-                if x > 0:
-                    x = random.uniform(weights_LB,weights_UB)
-        
+                x = x * random.uniform(self.param.wlo, self.param.whi)  # FIXME write back to array?
+
         return connect_array
 
-    def init_lsm_conn(self, fc, weights_LB = 1, weights_UB = 2):
+    def init_lsm_conn(self, fc):
         """
         Initialize connections.
         Be aware of the initial weights, sign of weights, number of inputs, and potential feedback loops.
@@ -31,22 +42,22 @@ class LSMInitializer:
 
         :param fc: Linear(in_size + hidden_size, hidden_size), with weight size of (hidden_size, in_size + hidden_size)
         """
-        np.random.seed(114514)
-        connect_array = np.zeros(list(fc.weight.shape)[0],list(fc.weight.shape)[1])
+        rand = np.random.RandomState(self.param.seed)
+        connect_array = np.zeros(fc.weight.size(0), fc.weight.size(1))  # FIXME does it work?
         generated = False
 
         while not generated:
             # Graph Generation
             for i in connect_array.shape[0]:
-                connect_array[i,:] = gu.select(connect_array.shape[1],16)
+                connect_array[i, :] = gu.select(connect_array.shape[1], self.param.fan_in, rand)
 
-            #Generate weights
+            # Generate weights
             connect_array = self.init_weight_generation(connect_array)
 
-            #Check the availability
+            # Check the availability
             generated = gu.check_availability(connect_array)
 
-        #Update weights to fc
+        # Update weights to fc
         with torch.no_grad():
             fc.weight = torch.from_numpy(connect_array)
 

@@ -23,11 +23,34 @@ def select(n, r, rand=npr.RandomState()):
         ans[rarr[i]] = 1
     return ans
 
+
 def check_availability(n):
     return True
 
 
-def connectivity(n, matrix):
-    visited = [0] * n
-    queue = []
-    
+def connectivity(pre, hidden, matrix):
+    visited = [0] * hidden
+    queue = [0]
+    visited[0] = 1
+    while len(queue) > 0:
+        a = queue.pop(0)
+        for i in range(hidden):
+            if not visited[i] and matrix[a][pre + i]:
+                queue.append(i)
+                visited[i] = 1
+    if sum(visited) < hidden:
+        return False
+
+    visited = [0] * hidden
+    queue = [0]
+    visited[0] = 1
+    while len(queue) > 0:
+        a = queue.pop(0)
+        for i in range(hidden):
+            if not visited[i] and matrix[i][pre + a]:
+                queue.append(i)
+                visited[i] = 1
+    if sum(visited) < hidden:
+        return False
+
+    return True
