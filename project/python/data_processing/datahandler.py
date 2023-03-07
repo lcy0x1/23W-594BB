@@ -37,7 +37,7 @@ class AudioHandler:
             spec = transforms.MFCC(sample_rate=48000,
                                    n_mfcc=n_mfcc,
                                    melkwargs=melkwargs)(signal)
-            spec = spec[:, 1:]
+            spec = spec[:, 1:, :]
 
         else:
             spec = transforms.MelSpectrogram(sample_rate=48000, n_fft=n_fft,

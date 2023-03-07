@@ -8,12 +8,13 @@ from data_processing.datahandler import AudioHandler
 
 
 class AudioMNIST(Dataset):
-    def __init__(self, datapath, visualization=False, mfcc=True, augment=False):
+    def __init__(self, datapath, visualization=False, spkgen=None, mfcc=True, augment=False):
         self.datapath = datapath
         self.files = self._build_files()
         self.audio_len = 48000
         self.shift_ptc = 0.4
         self.visualization = visualization
+        self.spkgen = spkgen
         self.mfcc = mfcc
         self.augment = augment
 
@@ -50,12 +51,13 @@ class AudioMNIST(Dataset):
                 sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
             )
 
-        sgram = (sgram - torch.mean(sgram)) / torch.std(sgram)
+        sgram = sgram[0]
+        sgram = ((sgram.T - torch.mean(sgram, 1)) / torch.std(sgram, 1)).T
 
         if self.visualization:
             self.plot(signal, pad, sgram)
 
-        return sgram.flatten(start_dim=0, end_dim=1), self.files[idx][1]
+        return sgram, self.files[idx][1]
 
     def plot(self, signal, pad, sgram):
         fig, axs = plt.subplots(4, figsize=[20, 25])
@@ -67,14 +69,19 @@ class AudioMNIST(Dataset):
         axs[1].set_title('Padded Signal')
         axs[1].set_xlabel('time')
 
-        # axs[2].plot(np.arange(len(shift[0])), np.array(shift[0]))
-        # axs[2].set_title('Shifted Signal')
-        # axs[2].set_xlabel('time')
-
-        librosa.display.specshow(np.array(sgram[0]), sr=48000, ax=axs[2])
+        img = librosa.display.specshow(np.array(sgram), sr=48000, ax=axs[2])
         title3 = 'MFCC' if self.mfcc else 'Mel Spectrogram'
         axs[2].set_title(title3)
         axs[2].set_xlabel('timestep')
+        fig.colorbar(img, ax=axs[2], format="%+2.f")
+
+        spkgen = self.spkgen
+        spk = spkgen.transform(0, sgram.unsqueeze(0)).permute(1, 2, 0)[0]
+        img = librosa.display.specshow(np.array(spk), sr=48000, ax=axs[3])
+        title3 = 'spikes'
+        axs[3].set_title(title3)
+        axs[3].set_xlabel('timestep')
+        fig.colorbar(img, ax=axs[3], format="%+2.f")
 
 
 class DataParam:

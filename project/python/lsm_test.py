@@ -1,8 +1,8 @@
 from snntorch import surrogate
 from snntorch.functional import ce_rate_loss
 
-from trainers.spikegen import SpikeGenerator
 from modules.lsm_net import *
+from trainers.spikegen import SpikeGenerator
 from trainers.trainer import OptmParams, Trainer
 
 seed = 12345
@@ -16,7 +16,7 @@ init = LSMInitializer(param)
 stdp = STDPLearner(ap=0.04, an=0.02, tp=t_decay, tn=t_decay, wmax=weight_max, wmin=0.5)
 net = LSMPool(optm, param, init, stdp)
 
-spikegen = SpikeGenerator(1, 0.95)
+spikegen = SpikeGenerator(scale=1, sp=4, sn=1, decay=0.9)
 trainer = Trainer(net, optm, ce_rate_loss, spikegen.transform)
 
 # net.lsm_train()
