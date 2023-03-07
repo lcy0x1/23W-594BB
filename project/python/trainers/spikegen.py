@@ -13,8 +13,8 @@ class SpikeGenerator:
         self.decay = decay
 
     def transform(self, _, x):
-        x = x / th.max(x) * self.scale
         max_t, batch_size, channel = x.size()
+        x = (x / th.amax(x, (0, 2)).expand((max_t, channel, batch_size)).swapaxes(1, 2)) * self.scale
         mem = th.zeros((batch_size, channel))
         record = []
         for t in range(max_t):
