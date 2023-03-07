@@ -17,7 +17,7 @@ class LSMInitParams:
         self.fan_in = fan_in
         self.wlo = wlo  # weight bound
         self.whi = whi  # weight bound
-        self.inhib = inhib  # number of inhibitary
+        self.inhib = inhib  # number of inhibitary neurons
 
 
 class LSMInitializer:
