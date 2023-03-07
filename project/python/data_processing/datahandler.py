@@ -27,16 +27,23 @@ class AudioHandler:
         return signal.roll(shift)
 
     @staticmethod
-    def spectrogram(signal, n_mels=64, n_fft=2034, hop_len=None, mfcc=False, n_mfcc=40):
+    def spectrogram(signal, n_mels=64, n_fft=2034, hop_len=None, mfcc=False, n_mfcc=32):
         top_db = 80
 
-        spec = transforms.MelSpectrogram(sample_rate=48000, n_fft=n_fft,
-                                         hop_length=hop_len,
-                                         n_mels=n_mels)(signal)
-        spec = transforms.AmplitudeToDB(top_db=top_db)(torch.Tensor(spec))
-
         if mfcc:
-            spec = transforms.MFCC(sample_rate=48000, n_mfcc=n_mfcc)
+            melkwargs = {"n_fft": n_fft,
+                         "hop_length": hop_len,
+                         "n_mels": n_mels,
+                         "center": False}
+            spec = transforms.MFCC(sample_rate=48000,
+                                   n_mfcc=n_mfcc,
+                                   melkwargs=melkwargs)(signal)
+
+        else:
+            spec = transforms.MelSpectrogram(sample_rate=48000, n_fft=n_fft,
+                                             hop_length=hop_len,
+                                             n_mels=n_mels)(signal)
+            spec = transforms.AmplitudeToDB(top_db=top_db)(torch.Tensor(spec))
 
         return spec
 
