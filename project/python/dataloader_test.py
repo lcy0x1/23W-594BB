@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-from data_processing.dataloader import LoaderCreator, DataParam, AudioMNIST
+from data_processing.dataloader import LoaderCreator, DataParam
 from data_processing.dataloader_test_model import CNN2DAudioClassifier
 
 DATAPATH = './Datasets/audio/'
@@ -33,6 +32,7 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer,
                                                 steps_per_epoch=int(len(train_dl)),
                                                 epochs=N_EPOCHS,
                                                 anneal_strategy='linear')
+
 
 def evaluate(model, val_dl):
     running_loss = 0.0
@@ -107,14 +107,19 @@ def training(model, train_dl, val_dl, num_epochs,
 
     return losses, val_losses
 
+
 def dataloader_test():
-    #losses, val_losses = training(model, train_dl, val_dl, N_EPOCHS, criterion, optimizer, scheduler)
-    #evaluate(model, val_dl)
-    #plt.plot(range(len(losses)), losses, range(len(val_losses)), val_losses)
-    #plt.legend(['Training Loss', 'Validation Loss'])
-    #plt.show()
-    dataset = AudioMNIST(datapath=DATAPATH)
-    dataset[0].shape
+    # losses, val_losses = training(model, train_dl, val_dl, N_EPOCHS, criterion, optimizer, scheduler)
+    # evaluate(model, val_dl)
+    # plt.plot(range(len(losses)), losses, range(len(val_losses)), val_losses)
+    # plt.legend(['Training Loss', 'Validation Loss'])
+    # plt.show()
+
+    # data, target = AudioMNIST(DATAPATH)[0]
+    # print(data.size(), target)
+    for data, target in iter(train_dl):
+        print(data.size(), target.size())
+
 
 if __name__ == "__main__":
     dataloader_test()

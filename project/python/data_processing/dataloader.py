@@ -1,19 +1,21 @@
-from torch.utils.data import DataLoader, Dataset, random_split
-from data_processing.datahandler import AudioHandler
-
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset, random_split
+
+from data_processing.datahandler import AudioHandler
 
 
 class AudioMNIST(Dataset):
-    def __init__(self, datapath, visualization=False, mfcc=True, load_entire_filetree=False):
+    def __init__(self, datapath, visualization=False, mfcc=True, augment=False):
         self.datapath = datapath
         self.files = self._build_files()
         self.audio_len = 48000
         self.shift_ptc = 0.4
         self.visualization = visualization
         self.mfcc = mfcc
+        self.augment = augment
 
     def _build_files(self):
         files = {}
@@ -43,36 +45,36 @@ class AudioMNIST(Dataset):
         sgram = AudioHandler.spectrogram(
             shift, n_mels=64, n_fft=1024, hop_len=None, mfcc=self.mfcc
         )
-        aug_sgram = AudioHandler.spectral_augmentation(
-            sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
-        )
+        if self.augment:
+            sgram = AudioHandler.spectral_augmentation(
+                sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
+            )
+
+        sgram = (sgram - torch.mean(sgram)) / torch.std(sgram)
 
         if self.visualization:
-            fig, axs = plt.subplots(4, figsize=[20, 25])
-            axs[0].plot(np.arange(len(signal)), np.array(signal))
-            axs[0].set_title('Original Signal')
-            axs[0].set_xlabel('time')
+            self.plot(signal, pad, sgram)
 
-            axs[1].plot(np.arange(len(pad[0])), np.array(pad[0]))
-            axs[1].set_title('Padded Signal')
-            axs[1].set_xlabel('time')
+        return sgram.flatten(start_dim=0, end_dim=1), self.files[idx][1]
 
-            # axs[2].plot(np.arange(len(shift[0])), np.array(shift[0]))
-            # axs[2].set_title('Shifted Signal')
-            # axs[2].set_xlabel('time')
+    def plot(self, signal, pad, sgram):
+        fig, axs = plt.subplots(4, figsize=[20, 25])
+        axs[0].plot(np.arange(len(signal)), np.array(signal))
+        axs[0].set_title('Original Signal')
+        axs[0].set_xlabel('time')
 
-            librosa.display.specshow(np.array(sgram[0]), sr=48000, ax=axs[2])
-            title3 = 'MFCC' if self.mfcc else 'Mel Spectrogram'
-            axs[2].set_title(title3)
-            axs[2].set_xlabel('timestep')
+        axs[1].plot(np.arange(len(pad[0])), np.array(pad[0]))
+        axs[1].set_title('Padded Signal')
+        axs[1].set_xlabel('time')
 
-            librosa.display.specshow(np.array(aug_sgram[0]), sr=48000, ax=axs[3])
-            title4 = 'MFCC after Agmentation' if self.mfcc else 'Mel Spectrogram after Agmentation'
-            axs[3].set_title(title4)
-            axs[3].set_xlabel('timestep')
-            plt.show()
+        # axs[2].plot(np.arange(len(shift[0])), np.array(shift[0]))
+        # axs[2].set_title('Shifted Signal')
+        # axs[2].set_xlabel('time')
 
-        return aug_sgram, self.files[idx][1]
+        librosa.display.specshow(np.array(sgram[0]), sr=48000, ax=axs[2])
+        title3 = 'MFCC' if self.mfcc else 'Mel Spectrogram'
+        axs[2].set_title(title3)
+        axs[2].set_xlabel('timestep')
 
 
 class DataParam:
