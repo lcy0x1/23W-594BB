@@ -15,8 +15,7 @@ class AudioHandler:
     @staticmethod
     def pad(signal, audio_length):
         new_signal = torch.zeros((1, audio_length))
-        new_signal[0, 48000 - len(signal):] = signal
-
+        new_signal[0, 0:len(signal)] = signal
         return new_signal
 
     @staticmethod
@@ -27,7 +26,7 @@ class AudioHandler:
         return signal.roll(shift)
 
     @staticmethod
-    def spectrogram(signal, n_mels=64, n_fft=2034, hop_len=None, mfcc=False, n_mfcc=32):
+    def spectrogram(signal, n_mels=64, n_fft=2034, hop_len=None, mfcc=True, n_mfcc=20):
         top_db = 80
 
         if mfcc:
