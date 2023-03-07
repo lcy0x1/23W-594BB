@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from generator import *
+from modules.verilog_generator import *
 from linear_leak import LinearLeakLIF
 from lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
 
