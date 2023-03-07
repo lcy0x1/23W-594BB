@@ -1,6 +1,6 @@
 import torch as th
 
-from generator import *
+from modules.verilog_generator import *
 
 
 def test_generate_hw3():
