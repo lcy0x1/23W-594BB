@@ -6,3 +6,4 @@ generated.v
 a.out
 dump.vcd
 Datasets/
+__pycache__/
