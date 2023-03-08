@@ -52,7 +52,9 @@ class AudioMNIST(Dataset):
             )
 
         sgram = sgram[0]
+        padded = torch.sum(sgram,0) > 1e-3
         sgram = ((sgram.T - torch.mean(sgram, 1)) / torch.std(sgram, 1)).T
+        sgram = sgram * padded -3 * (1 - 1 * padded)
 
         if self.visualization:
             self.plot(signal, pad, sgram)

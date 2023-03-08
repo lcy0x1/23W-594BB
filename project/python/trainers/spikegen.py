@@ -8,7 +8,8 @@ Date: Mar 6
 
 class SpikeGenerator:
 
-    def __init__(self, scale, sp, sn, decay):
+    def __init__(self, step, scale, sp, sn, decay):
+        self.step = step
         self.scale = scale
         self.sp = sp
         self.sn = sn
@@ -25,4 +26,5 @@ class SpikeGenerator:
             out = 1 * (mem > 1)
             mem = mem - out
             record.append(out)
-        return th.stack(record)
+        ans = th.concat((th.stack(record), th.zeros((self.step - max_t, batch_size, channel))), dim=0)
+        return ans
