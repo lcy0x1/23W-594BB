@@ -119,6 +119,7 @@ def dataloader_test():
     # print(data.size(), target)
     for data, target in iter(train_dl):
         print(data.size(), target.size())
+        print(data.size(), target.size())
 
 
 if __name__ == "__main__":

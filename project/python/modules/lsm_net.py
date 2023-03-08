@@ -2,8 +2,8 @@ import torch
 from torch import nn
 
 from modules.verilog_generator import *
-from linear_leak import LinearLeakLIF
-from lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
+from modules.linear_leak import LinearLeakLIF
+from modules.lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
 
 """
 Author: Arthur Wang
@@ -30,7 +30,7 @@ class LSMPool(nn.Module):
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False)
         self.lsm = LSMNeuron(beta=1.0, threshold=init.get_lsm_threshold())
-        self.fc2 = nn.Linear(self.hidden_size, self.ou)
+        self.fc2 = nn.Linear(self.hidden_size, self.out_size)
         self.readout = LinearLeakLIF(beta=1.0, threshold=init.get_readout_threshold(),
                                      spike_grad=optm.grad, learn_beta=False,
                                      learn_threshold=True)
