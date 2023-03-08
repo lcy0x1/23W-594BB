@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 """
@@ -25,6 +26,9 @@ class SignalSource:
 
     def get_spike(self):
         return f"spike_{self.id:03d}"
+
+    def gen_module(self, text: List[str]):
+        pass
 
 
 class NeuronConnection:
@@ -62,17 +66,30 @@ class NeuronDataImpl(SignalSource):
 
     def gen_module(self, text: List[str]):
         sid = self.get_id()
-        summed = ""
         zero = "{V_SIZE{1'b0}}"
         for conn in self.fan_in:
             pid = conn.in_neuron.get_id()
-            text.append(f"parameter `SIG_V w_{pid}_{sid} = {conn.get_weight()};")
-            if len(summed) > 0:
-                summed += " + "
-            summed += f"({conn.in_neuron.get_spike()} ? w_{pid}_{sid} : {zero})"
-
+            text.append(f"wire `SIG_V x_{pid}_{sid} = {conn.in_neuron.get_spike()} ? {conn.get_weight()} : {zero};")
+        summed = self.gen_add(text, 0, len(self.fan_in))
         text.append(f"lif #(V_SIZE,{self.threshold},{self.leak}) n{sid} "
                     f"(clk, rstn, {summed}, {self.get_spike()});")
+
+    def gen_add(self, text, start, end):
+        sid = self.get_id()
+        idx = f"_{sid}_{start:03d}_{end - 1:03d}"
+        if end - start == 2:
+            aid = f"x_{self.fan_in[start].in_neuron.get_id()}_{sid}"
+            bid = f"x_{self.fan_in[end - 1].in_neuron.get_id()}_{sid}"
+        elif end - start == 3:
+            aid = self.gen_add(text, start, end - 1)
+            bid = f"x_{self.fan_in[end - 1].in_neuron.get_id()}_{sid}"
+        else:
+            mid = math.floor((start + end) / 2)
+            aid = self.gen_add(text, start, mid)
+            bid = self.gen_add(text, mid, end)
+        text.append(f"wire `SIG_V sum{idx};")
+        text.append(f"clipped_adder #(V_SIZE) add{idx}({aid}, {bid}, sum{idx});")
+        return f"sum{idx}"
 
 
 class NeuronHidden(NeuronDataImpl):
@@ -80,10 +97,9 @@ class NeuronHidden(NeuronDataImpl):
     def __init__(self, leak, threshold):
         super().__init__(leak, threshold, TYPE_HIDDEN)
 
-    def produce(self, neuron_list: List, text: List[str]):
-        super().produce(neuron_list, text)
+    def gen_module(self, text: List[str]):
         text.append(f"wire {self.get_spike()};")
-        self.gen_module(text)
+        super().gen_module(text)
 
 
 class NeuronReadout(NeuronDataImpl):
@@ -97,24 +113,20 @@ class NeuronReadout(NeuronDataImpl):
     def get_spike(self):
         return f"spikes_o[{self.id}]"
 
-    def produce(self, neuron_list: List, text: List[str]):
-        super().produce(neuron_list, text)
-        self.gen_module(text)
-
 
 def generate(path: str, neurons: List[SignalSource]):
-    ans_list = []
-    ans_list.append('`include "lif.v"')
-    ans_list.append("module wrapper #(parameter V_SIZE = `DEF_V_SIZE) (")
-    ans_list.append("INDENT")
-    ans_list.append("input wire clk,")
-    ans_list.append("input wire rstn,")
     input_count = sum([1 if i.neuron_type == TYPE_INPUT else 0 for i in neurons])
     output_count = sum([1 if i.neuron_type == TYPE_OUTPUT else 0 for i in neurons])
-    ans_list.append(f"input wire [{input_count - 1}:0] spikes_i")
-    ans_list.append(f"output wire [{output_count - 1}:0] spikes_o")
-    ans_list.append("DEINDENT")
-    ans_list.append(");")
+    ans_list = ['`include "lif.v"',
+                "`timescale 1ns/1ps",
+                "module generated #(parameter V_SIZE = `DEF_V_SIZE) (",
+                "INDENT",
+                "input wire clk,",
+                "input wire rstn,",
+                f"input wire [{input_count - 1}:0] spikes_i,",
+                f"output wire [{output_count - 1}:0] spikes_o",
+                "DEINDENT",
+                ");"]
     in_list = []
     for n in neurons:
         if n.neuron_type == TYPE_INPUT:
@@ -123,10 +135,14 @@ def generate(path: str, neurons: List[SignalSource]):
     for n in neurons:
         if n.neuron_type == TYPE_HIDDEN:
             n.produce(neuron_list, ans_list)
+    for n in neurons:
+        if n.neuron_type == TYPE_HIDDEN:
+            n.gen_module(ans_list)
     out_list = []
     for n in neurons:
         if n.neuron_type == TYPE_OUTPUT:
             n.produce(out_list, ans_list)
+            n.gen_module(ans_list)
     ans_list.append("endmodule")
     ans = ""
     indent = 0

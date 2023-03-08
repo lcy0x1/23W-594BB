@@ -1,6 +1,10 @@
 import torch as th
+from snntorch import surrogate
 
+from modules.lsm_hyperparam import LSMInitParams, LSMNeuronParams, LSMInitializer, STDPLearner
+from modules.lsm_net import LSMPool
 from modules.verilog_generator import *
+from trainers.trainer import OptmParams
 
 
 def test_generate_hw3():
@@ -38,5 +42,23 @@ def test_grad_compute():
     print(a.grad)
 
 
+def test_lsm_gen():
+    seed = 12345
+    weight_bit = 6
+    volt_bit = 8
+    weight_max = 2 ** weight_bit - 1
+    threshold_max = 2 ** volt_bit - 1
+    num_steps = 100
+    t_decay = 10
+    param = LSMInitParams(in_size=19, hidden_size=60, out_size=10, seed=seed, fan_in=16, inhib=10)
+    weights = LSMNeuronParams(wlo=4, whi=20, tlo=8, thi=threshold_max)
+    optm = OptmParams(grad=surrogate.fast_sigmoid(), num_steps=num_steps, lr=7e-4, beta_lo=1 - 1e-1, beta_hi=1 - 1e-3)
+    init = LSMInitializer(param, weights)
+    stdp = STDPLearner(ap=0.04, an=0.02, tp=t_decay, tn=t_decay, wmax=weight_max, wmin=0.5)
+    net = LSMPool(optm, param, init, stdp)
+    ans = net.generate()
+    generate("./../verilog/generated.v", ans)
+
+
 if __name__ == "__main__":
-    test_generate_hw3()
+    test_lsm_gen()

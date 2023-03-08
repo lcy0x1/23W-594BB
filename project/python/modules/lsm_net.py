@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
-from modules.verilog_generator import *
 from modules.linear_leak import LinearLeakLIF
 from modules.lsm_hyperparam import LSMInitParams, STDPLearner, LSMInitializer
+from modules.verilog_generator import *
 
 """
 Author: Arthur Wang
@@ -29,9 +29,9 @@ class LSMPool(nn.Module):
         self.optm_param = optm
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False)
-        self.lsm = LSMNeuron(beta=1.0, threshold=init.get_lsm_threshold())
+        self.lsm = LSMNeuron(beta=torch.ones((self.hidden_size,)), threshold=init.get_lsm_threshold())
         self.fc2 = nn.Linear(self.hidden_size, self.out_size)
-        self.readout = LinearLeakLIF(beta=1.0, threshold=init.get_readout_threshold(),
+        self.readout = LinearLeakLIF(beta=torch.ones((self.out_size,)), threshold=init.get_readout_threshold(),
                                      spike_grad=optm.grad, learn_beta=False,
                                      learn_threshold=True)
 
@@ -136,6 +136,8 @@ class LSMPool(nn.Module):
                 self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
 
     def generate(self) -> List[SignalSource]:
+        print(torch.sum(torch.floor(self.fc1.weight.data) != 0, 1),
+              torch.sum(torch.floor(self.fc2.weight.data) != 0, 1))
         ans = []
         for i in range(self.in_size):
             ans.append(NeuronDataInput())
@@ -149,12 +151,12 @@ class LSMPool(nn.Module):
             ans.append(NeuronReadout(leak, thres))
         for i in range(self.hidden_size):
             for j in range(self.in_size + self.hidden_size):
-                ws = round(self.fc1.weight[j][self.in_size + i].item())
+                ws = round(self.fc1.weight.data[i][j].item())
                 if ws != 0:
                     ans[self.in_size + i].add_conn(NeuronConnection(ans[j], ws))
         for i in range(self.out_size):
             for j in range(self.hidden_size):
-                ws = round(self.fc1.weight[j][i].item())
+                ws = round(self.fc2.weight.data[i][j].item())
                 if ws != 0:
                     ans[self.in_size + self.hidden_size + i].add_conn(NeuronConnection(ans[self.in_size + j], ws))
         return ans

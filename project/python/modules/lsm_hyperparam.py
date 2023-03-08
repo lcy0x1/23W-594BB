@@ -75,14 +75,9 @@ class LSMInitializer:
 
         :param fc: Linear(hidden_size, out_size), with weight size of (out_size, hidden_size)
         """
-        connect_array = fc.weight.data * 0
-
-        # Generate weights
-        connect_array *= torch.rand(connect_array.size()) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
-
-        # Update weights to fc
+        size = fc.weight.data.size()
         with torch.no_grad():
-            fc.weight.data = connect_array
+            fc.weight.data = torch.rand(size) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
 
     def get_lsm_threshold(self):
         t0 = self.weights.tlo
