@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-from data_processing.dataloader import LoaderCreator, DataParam
+from data_processing.dataloader import LoaderCreator, DataParam, AudioMNIST
 from data_processing.dataloader_test_model import CNN2DAudioClassifier
+from data_processing.data_preprocessing import DataPreprocess
+from trainers.spikegen import SpikeGenerator
 
 DATAPATH = './Datasets/audio/'
 
+'''
 if torch.cuda.is_available():
     print("Using CUDA device")
     device = torch.device("cuda:0")
@@ -18,7 +21,7 @@ train_param = DataParam(0.8, 64, shuffle=True)
 val_param = DataParam(0.12, 64, shuffle=False)
 test_param = DataParam(0.08, 32, shuffle=False)
 
-train_dl, val_dl, test_dl = LoaderCreator(DATAPATH).create_loaders(
+train_dl, val_dl, test_dl = LoaderCreator(DATAPATH, datashape).create_loaders(
     train_param,
     val_param,
     test_param)
@@ -107,6 +110,8 @@ def training(model, train_dl, val_dl, num_epochs,
 
     return losses, val_losses
 
+'''
+
 
 def dataloader_test():
     # losses, val_losses = training(model, train_dl, val_dl, N_EPOCHS, criterion, optimizer, scheduler)
@@ -117,8 +122,11 @@ def dataloader_test():
 
     # data, target = AudioMNIST(DATAPATH)[0]
     # print(data.size(), target)
-    for data, target in iter(train_dl):
-        print(data.size(), target.size())
+    # for data, target in iter(train_dl):
+        # print(data.size(), target.size())
+    shape = DataPreprocess(DATAPATH, spkgen=SpikeGenerator(120, 1, 3, 1, 0.9)).preprocess()
+    dataset = AudioMNIST('./Datasets/spike/MFCC/', shape, visualization=True)
+    dataset[0]
 
 
 if __name__ == "__main__":
