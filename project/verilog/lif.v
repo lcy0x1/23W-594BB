@@ -15,7 +15,7 @@ module clipped_adder #(parameter V_SIZE = `DEF_V_SIZE) (
 );
 
 wire `SIG_V sum = a+b;
-assign out = (!a[V_SIZE-1] && !b[V_SIZE-1] && sum[V_SIZE-1]) ? `INF : (a[V_SIZE-1] && b[V_SIZE-1] && !sum[V_SIZE-1]) ? {(V_SIZE){1'b1}} : sum;
+assign out = (!a[V_SIZE-1] && !b[V_SIZE-1] && sum[V_SIZE-1]) ? `INF : (a[V_SIZE-1] && b[V_SIZE-1] && !sum[V_SIZE-1]) ? {1,(V_SIZE-1){1'b0}} : sum;
 endmodule
 
 module lif_core #(parameter V_SIZE = `DEF_V_SIZE, parameter V_LEAK = `DEF_LEAK) (
