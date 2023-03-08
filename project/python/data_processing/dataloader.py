@@ -6,37 +6,22 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from tqdm import tqdm
 
 from data_processing.datahandler import AudioHandler
+from data_processing.byte_loader import compress, decompress
 
 
 class AudioMNIST(Dataset):
-    def __init__(self, datapath, datashape, visualization=False):
+    def __init__(self, datapath, visualization=False):
         self.datapath = datapath
-        self.datashape = datashape
         self.visualization = visualization
-        self.files = self._build_files()
         self.data = self._rebuild_data()
-
-    def _build_files(self):
-        files = {}
-        index = 0
-        for ii in range(1, 61):
-            num = "0%d" % ii if ii < 10 else "%d" % ii
-            for jj in range(50):
-                for kk in range(10):
-                    files[index] = [
-                        self.datapath + num + "/%d_%s_%d.bin" % (
-                            kk, num, jj),
-                        kk
-                    ]
-                    index += 1
-
-        return files
 
     def _rebuild_data(self):
         print('rebuilding data!')
-        data = {}
-        for i in tqdm(range(self.__len__())):
-            data[i] = np.fromfile(self.files[i][0], dtype=np.uint8).reshape(self.datashape)
+        data = {i: [] for i in range(10)}
+
+        for i in tqdm(range(10)):
+            sample = torch.load(self.datapath + str(i) + '_dataset.pth')
+            data[i].append(decompress(sample))
 
         return data
 
@@ -51,7 +36,7 @@ class AudioMNIST(Dataset):
             ax.set_xlabel('timestep')
             fig.colorbar(img, ax=ax, format="%+2.f")
 
-        return torch.from_numpy(self.data[idx]), self.files[idx][1]
+        return self.data[idx // 3000][idx % 3000], idx//3000
 
 
 class DataParam:
@@ -67,13 +52,13 @@ class DataParam:
 
 
 class LoaderCreator:
-    def __init__(self, datapath, datashape, mfcc=True, num_workers=2):
+    def __init__(self, datapath, mfcc=True, num_workers=2):
         """
         @param datapath: the path to dataset
         @param num_workers:
         """
         self.num_workers = num_workers
-        self.dataset = AudioMNIST(datapath, datashape)
+        self.dataset = AudioMNIST(datapath)
 
     def create_loaders(self, train_param: DataParam, val_param: DataParam, test_param: DataParam):
         train_ds, val_ds, test_ds = random_split(self.dataset, [train_param.ratio, val_param.ratio, test_param.ratio])

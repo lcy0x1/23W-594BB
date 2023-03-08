@@ -8,6 +8,16 @@
 `define SIG_V signed [V_SIZE-1:0]
 `define USG_V unsigned [V_SIZE-2:0]
 
+module clipped_adder #(parameter V_SIZE = `DEF_V_SIZE) (
+     input `SIG_V a,
+     input `SIG_V b,
+     output `SIG_V out
+);
+
+wire `SIG_V sum = a+b;
+assign out = (!a[V_SIZE-1] && !b[V_SIZE-1] && sum[V_SIZE-1]) ? `INF : (a[V_SIZE-1] && b[V_SIZE-1] && !sum[V_SIZE-1]) ? {(V_SIZE){1'b1}} : sum;
+endmodule
+
 module lif_core #(parameter V_SIZE = `DEF_V_SIZE, parameter V_LEAK = `DEF_LEAK) (
      input `USG_V prev_v,
      input `SIG_V spike_in,

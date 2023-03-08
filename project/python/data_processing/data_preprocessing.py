@@ -1,4 +1,3 @@
-import os
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,6 +6,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from data_processing.datahandler import AudioHandler
+from data_processing.byte_loader import compress, decompress
 
 
 class DataPreprocess:
@@ -23,45 +23,46 @@ class DataPreprocess:
 
     def _build_files(self):
         print('start building files!')
-        files = {}
-        index = 0
+        files = {i: [] for i in range(10)}
         for ii in range(1, 61):
             num = "0%d" % ii if ii < 10 else "%d" % ii
             for jj in range(50):
                 for kk in range(10):
-                    files[index] = [
+                    files[kk].append(
                         self.datapath + num + "/%d_%s_%d.wav" % (
-                            kk, num, jj),
-                        kk
-                    ]
-                    index += 1
+                            kk, num, jj))
 
         return files
 
     def _build_data(self):
         print('start building data!')
-        data = {}
-        for i in tqdm(range(self.__len__())):
-            signal = AudioHandler.open(self.files[i][0])[0]
-            pad = AudioHandler.pad(signal, self.audio_len)
-            # shift = AudioHandler.time_shift(pad, self.shift_ptc)
-            shift = pad
-            sgram = AudioHandler.spectrogram(
-                shift, n_mels=64, n_fft=1024, hop_len=None, mfcc=self.mfcc
-            )
-            if self.augment:
-                sgram = AudioHandler.spectral_augmentation(
-                    sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
+        data = {i: [[] for _ in range(4)] for i in range(10)}
+
+        for i in tqdm(range(10)):
+            for file in self.files[i]:
+                signal = AudioHandler.open(file)[0]
+                pad = AudioHandler.pad(signal, self.audio_len)
+                # shift = AudioHandler.time_shift(pad, self.shift_ptc)
+                shift = pad
+                sgram = AudioHandler.spectrogram(
+                    shift, n_mels=64, n_fft=1024, hop_len=None, mfcc=self.mfcc
                 )
+                if self.augment:
+                    sgram = AudioHandler.spectral_augmentation(
+                        sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
+                    )
 
-            sgram = sgram[0]
-            padded = torch.sum(sgram, 0) > 1e-3
-            sgram = ((sgram.T - torch.mean(sgram, 1)) / torch.std(sgram, 1)).T
-            sgram = sgram * padded - 3 * (1 - 1 * padded)
+                sgram = sgram[0]
+                padded = torch.sum(sgram, 0) > 1e-3
+                sgram = ((sgram.T - torch.mean(sgram, 1)) / torch.std(sgram, 1)).T
+                sgram = sgram * padded - 3 * (1 - 1 * padded)
 
-            spkgen = self.spkgen
-            spk = spkgen.transform(0, sgram.unsqueeze(0)).permute(1, 2, 0)[0]
-            data[i] = (signal, pad, sgram, spk)
+                spkgen = self.spkgen
+                spk = spkgen.transform(0, sgram.unsqueeze(0)).permute(1, 2, 0)[0]
+                data[i][0].append(signal)
+                data[i][1].append(pad)
+                data[i][2].append(sgram)
+                data[i][3].append(spk)
 
         return data
 
@@ -69,7 +70,27 @@ class DataPreprocess:
         return 30000
 
     def __getitem__(self, idx):
-        signal, pad, sgram, spk = self.data[idx]
+        file = self.files[idx // 3000][idx % 3000]
+        signal = AudioHandler.open(file)[0]
+        pad = AudioHandler.pad(signal, self.audio_len)
+        # shift = AudioHandler.time_shift(pad, self.shift_ptc)
+        shift = pad
+        sgram = AudioHandler.spectrogram(
+            shift, n_mels=64, n_fft=1024, hop_len=None, mfcc=self.mfcc
+        )
+        if self.augment:
+            sgram = AudioHandler.spectral_augmentation(
+                sgram, max_mask_ptc=0.1, n_freq_masks=2, n_time_masks=2
+            )
+
+        sgram = sgram[0]
+        padded = torch.sum(sgram, 0) > 1e-3
+        sgram = ((sgram.T - torch.mean(sgram, 1)) / torch.std(sgram, 1)).T
+        sgram = sgram * padded - 3 * (1 - 1 * padded)
+
+        spkgen = self.spkgen
+        spk = spkgen.transform(0, sgram.unsqueeze(0)).permute(1, 2, 0)[0]
+
         if self.visualization:
             self.plot(signal, pad, sgram, spk)
 
@@ -99,19 +120,13 @@ class DataPreprocess:
 
     def preprocess(self):
         print('start storing spike files!')
-        for i in tqdm(range(self.__len__())):
-            file_name = self.files[i][0][len(self.datapath):-4]
-            _, _, _, spk = self.data[i]
-            output = np.array(spk, dtype=np.uint8)
-            name_mfcc = 'MFCC' if self.mfcc else 'Mel_Scale'
+        spks = [[] for _ in range(10)]
 
-            filepath = self.datapath[:-6] + 'spike/' + name_mfcc + '/' + file_name + '.bin'
+        for i in tqdm(range(10)):
+            spks[i] = torch.stack(self.data[i][3])
+            #spks[i] = torch.permute(spks[i], (1, 0, 2))
 
-            # check the directory does not exist
-            if not (os.path.exists(filepath[:-11])):
-                # create the directory you want to save to
-                os.makedirs(filepath[:-11])
+            output = compress(spks[i].byte())
+            torch.save(output.byte(), self.datapath[:-6] + str(i) + '_dataset.pth')
 
-            output.tofile(filepath)
-
-        return output.shape
+        return spks
