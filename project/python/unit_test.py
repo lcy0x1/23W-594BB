@@ -1,6 +1,8 @@
+import torch
 import torch as th
 from snntorch import surrogate
 
+from data_processing.byte_loader import compress, decompress
 from modules.lsm_hyperparam import LSMInitParams, LSMNeuronParams, LSMInitializer, STDPLearner
 from modules.lsm_net import LSMPool
 from modules.verilog_generator import *
@@ -60,5 +62,14 @@ def test_lsm_gen():
     generate("./../verilog/generated.v", ans)
 
 
+def save_file():
+    a = (torch.rand((64, 32, 128)) > 0.5) * 1
+    b = compress(a)
+    torch.save(b.byte(), "./Datasets/test.pth")
+    c = torch.load("./Datasets/test.pth")
+    d = decompress(c)
+    print(torch.sum(a != d))
+
+
 if __name__ == "__main__":
-    test_lsm_gen()
+    save_file()
