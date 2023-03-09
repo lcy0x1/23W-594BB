@@ -17,11 +17,11 @@ class AudioMNIST(Dataset):
 
     def _rebuild_data(self):
         print('rebuilding data!')
-        data = {i: [] for i in range(10)}
+        data = []
 
         for i in tqdm(range(10)):
             sample = torch.load(self.datapath + str(i) + '_dataset.pth')
-            data[i].append(decompress(sample))
+            data.append(decompress(sample))
 
         return data
 
