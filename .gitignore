@@ -7,3 +7,5 @@ a.out
 dump.vcd
 Datasets/
 __pycache__/
+
+Checkpoints/

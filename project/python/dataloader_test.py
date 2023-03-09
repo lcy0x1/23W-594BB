@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-from data_processing.dataloader import LoaderCreator, DataParam
+from data_processing.data_preprocessing import DataPreprocess
+from trainers.spikegen import SpikeGenerator
+from data_processing.dataloader import LoaderCreator, DataParam, AudioMNIST
 from data_processing.dataloader_test_model import CNN2DAudioClassifier
 
 DATAPATH = './Datasets/audio/'
-
+DATAPATH2 = './Datasets/'
+'''
 if torch.cuda.is_available():
     print("Using CUDA device")
     device = torch.device("cuda:0")
@@ -106,7 +109,7 @@ def training(model, train_dl, val_dl, num_epochs,
         val_losses.append(v_loss)
 
     return losses, val_losses
-
+'''
 
 def dataloader_test():
     # losses, val_losses = training(model, train_dl, val_dl, N_EPOCHS, criterion, optimizer, scheduler)
@@ -117,10 +120,17 @@ def dataloader_test():
 
     # data, target = AudioMNIST(DATAPATH)[0]
     # print(data.size(), target)
-    for data, target in iter(train_dl):
-        print(data.size(), target.size())
-        print(data.size(), target.size())
+    # for data, target in iter(train_dl):
+       # print(data.size(), target.size())
+    spks = DataPreprocess(DATAPATH, spkgen=SpikeGenerator(128, 1, 3, 1, 0.9)).preprocess()
 
+    for i in range(0, 30000, 3000):
+        spk_rebuild = AudioMNIST(DATAPATH2)[i][0][0]
+        print(
+            torch.sum(
+                torch.ne(spks[i // 3000][i % 3000], spk_rebuild)
+            )
+        )
 
 if __name__ == "__main__":
     dataloader_test()
