@@ -3,6 +3,8 @@ import torch as th
 from snntorch import surrogate
 
 from data_processing.byte_loader import compress, decompress
+from data_processing.dataloader import AudioMNIST
+from data_processing.verilog_memory_generator import mem_gen
 from modules.lsm_hyperparam import LSMInitParams, LSMNeuronParams, LSMInitializer, STDPLearner
 from modules.lsm_net import LSMPool
 from modules.verilog_generator import *
@@ -71,5 +73,11 @@ def save_file():
     print(torch.sum(a != d))
 
 
+def test_mem_gen():
+    data = AudioMNIST("./SpikeData/")
+    x, _ = data[0]
+    mem_gen("./../verilog/memory_0.mem", x)
+
+
 if __name__ == "__main__":
-    save_file()
+    test_mem_gen()

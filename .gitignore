@@ -1,6 +1,7 @@
 .idea/
 venv/
 generated.v
+*.mem
 
 .DS_Store
 a.out
