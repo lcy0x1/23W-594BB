@@ -1,3 +1,5 @@
+import os
+
 from snntorch import surrogate
 from snntorch.functional import ce_rate_loss
 from tqdm import tqdm
@@ -9,13 +11,11 @@ from trainers.trainer import OptmParams, Trainer
 
 
 def build_env():
-    DATAPATH = './Datasets/'
-
     train_param = DataParam(0.8, 64, shuffle=True)
     val_param = DataParam(0.12, 64, shuffle=False)
     test_param = DataParam(0.08, 32, shuffle=False)
 
-    train_dl, val_dl, test_dl = LoaderCreator(DATAPATH).create_loaders(
+    train_dl, val_dl, test_dl = LoaderCreator('./SpikeData/').create_loaders(
         train_param,
         val_param,
         test_param)
@@ -41,8 +41,11 @@ def build_env():
 
     w0 = net.fc1.weight.data.clone()
 
+    checkpoint = "./Checkpoints"
+    if not os.path.isdir(checkpoint):
+        os.mkdir(checkpoint)
     epochs = tqdm(iter(train_dl))
-    for data, target in epochs:
+    for i, (data, target) in enumerate(epochs):
         net.lsm_train(transform(0, data))
         w1 = net.fc1.weight.data.clone()
 
@@ -51,6 +54,10 @@ def build_env():
         connected = torch.sum(w1 != 0)
         epochs.set_description(f"LSM activity: {acvtivity} | variation: {variation:.3f} | connected: {connected}")
         w0 = w1
+
+        torch.save(net.state_dict(), f"{checkpoint}/lsm_stdp_{i}.pth")
+
+    trainer.train(100, train_dl, test_dl)
 
     # net.lsm_train()
     # net.forward()

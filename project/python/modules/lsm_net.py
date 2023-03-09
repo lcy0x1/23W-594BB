@@ -26,7 +26,7 @@ class LSMPool(nn.Module):
         self.hidden_size = param.hidden_size
         self.out_size = param.out_size
         self.total_size = self.in_size + self.hidden_size
-        self.optm_param = optm
+        self.num_steps = optm.num_steps
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False)
         self.lsm = LSMNeuron(beta=torch.ones((self.hidden_size,)), threshold=init.get_lsm_threshold())
@@ -49,7 +49,7 @@ class LSMPool(nn.Module):
 
         self.lsm_learning = False
         batch_size = x.size(1)
-        max_t = self.optm_param.num_steps
+        max_t = self.num_steps
         assert x.size() == (max_t, batch_size, self.in_size)
         with torch.no_grad():
             x, _ = self._forward_lsm(max_t, batch_size, x)
@@ -59,7 +59,7 @@ class LSMPool(nn.Module):
     def lsm_train(self, x):
         self.lsm_learning = True
         batch_size = x.size(1)
-        max_t = self.optm_param.num_steps
+        max_t = self.num_steps
         assert x.size() == (max_t, batch_size, self.in_size)
         with torch.no_grad():
             self._forward_lsm(max_t, batch_size, x)

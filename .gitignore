@@ -6,3 +6,5 @@ generated.v
 a.out
 dump.vcd
 Datasets/
+
+Checkpoints/
