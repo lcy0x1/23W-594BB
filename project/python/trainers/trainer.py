@@ -49,7 +49,7 @@ class TrainProgress:
         self.epochs = None
 
     def display(self):
-        self.epochs.set_description(f"{self.name}{self.index + 1}/{self.max} | loss: {self.loss:.3e} | "
+        self.epochs.set_description(f"{self.name}{self.index + 1}/{self.max} | loss: {self.loss.item():.3e} | "
                                     f"Training Set Accuracy: {self.train_acc * 100:.2f}% | "
                                     f"Testing Set Accuracy: {self.test_acc * 100:.2f}%")
 
@@ -62,7 +62,8 @@ class Trainer:
 
     def __init__(self, net, optm: OptmParams, loss, transformer):
         self.dtype = torch.float
-        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        #self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        self.device = torch.device("cpu")
         print("Trainer Constructed. Device: ", self.device)
         self.optm = optm
         self.net = net.to(self.device)
@@ -82,7 +83,7 @@ class Trainer:
                 spike_data = self.transformer(self, data)
                 data = spike_data.to(self.device)
                 targets = targets.to(self.device)
-                spk_rec, _ = self.net(data)
+                spk_rec = self.net(data)
                 acc += SF.accuracy_temporal(spk_rec, targets) * spk_rec.size(1)
                 total += spk_rec.size(1)
                 self.progress.index = i
@@ -104,7 +105,7 @@ class Trainer:
                 data = spike_data.to(self.device)
                 targets = targets.to(self.device)
                 self.net.train()
-                spk_rec, _ = self.net(data)
+                spk_rec = self.net(data)
                 loss_val = self.loss_fn(spk_rec, targets)
                 self.optimizer.zero_grad()
                 loss_val.backward()
