@@ -23,15 +23,18 @@ always @(posedge clk) begin
     if (!rstn) begin
         in_addr <= 0;
         out_addr <= 0;
-    end else if (en) begin
+        data_out <= 0;
+    end else if (we) begin
         data[in_addr] <= data_in;
         out_addr <= 0;
         in_addr <= in_addr + 1;
-    end else if (we) begin
+        data_out <= 0;
+    end else if (en) begin
         data_out <= data[out_addr];
         out_addr <= out_addr + 1;
         in_addr <= 0;
     end else begin
+        data_out <= 0;
         in_addr <= 0;
         out_addr <= 0;
     end
