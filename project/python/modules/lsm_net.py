@@ -28,11 +28,12 @@ class LSMPool(nn.Module):
         self.total_size = self.in_size + self.hidden_size
         self.num_steps = optm.num_steps
 
-        #self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        # self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.device = torch.device("cpu")
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False).to(self.device)
-        self.lsm = LSMNeuron(beta=torch.ones((self.hidden_size,)).to(self.device), threshold=init.get_lsm_threshold()).to(self.device)
+        self.lsm = LSMNeuron(beta=torch.ones((self.hidden_size,)).to(self.device),
+                             threshold=init.get_lsm_threshold()).to(self.device)
         self.fc2 = nn.Linear(self.hidden_size, self.out_size).to(self.device)
         self.readout = LinearLeakLIF(beta=torch.ones((self.out_size,)), threshold=init.get_readout_threshold(),
                                      spike_grad=optm.grad, learn_beta=False,
@@ -40,7 +41,7 @@ class LSMPool(nn.Module):
 
         init.init_lsm_conn(self.fc1)
         init.init_readout_weight(self.fc2)
-        self.stdp = stdp.stdp
+        self.stdp = stdp
         self.lsm_learning = True
 
     def forward(self, x):
@@ -106,8 +107,7 @@ class LSMPool(nn.Module):
             # STDP implementation
             if self.lsm_learning:
                 spk_time = (spk_time + 1) * (1 - spk)
-                for batch in range(batch_size):
-                    self._perform_stdp(spk_time[batch])
+                self._perform_stdp(spk_time)
 
         return torch.stack(spk_rec, dim=0).to(self.device), torch.stack(mem_rec, dim=0).to(self.device)
 
@@ -132,13 +132,37 @@ class LSMPool(nn.Module):
         return torch.stack(spk_rec, dim=0).to(self.device), torch.stack(mem_rec, dim=0).to(self.device)
 
     def _perform_stdp(self, spk_time):
-        for pre in range(self.total_size):
-            if round(spk_time[pre].item()) == 0:
-                time_slice = spk_time[self.in_size:self.total_size]
-                self.fc1.weight.T[pre] = self.stdp(self.fc1.weight.T[pre], -time_slice)
-        for post in range(self.hidden_size):
-            if round(spk_time[self.in_size + post].item()) == 0:
-                self.fc1.weight[post] = self.stdp(self.fc1.weight[post], spk_time)
+        """
+
+        :param spk_time: batch x total_size
+        :return:
+        """
+
+        def stdp(learner: STDPLearner, weights_old, spk, time_diff):
+            """
+            :param learner:
+            :param weights_old: AxB
+            :param spk: batch x A
+            :param time_diff: batch x B
+            :return:
+            """
+            pos = learner.ap * torch.exp(-abs(time_diff) / learner.tp) * (time_diff > 0)
+            neg = -learner.an * torch.exp(-abs(time_diff) / learner.tn) * (time_diff < 0)
+            valid = (spk == 0) * 1.0
+            return weights_old * (valid.T @ (pos + neg))
+
+        time_slice = spk_time[:, self.in_size:self.total_size]
+        old_weight = self.fc1.weight
+        add_pre = stdp(self.stdp, old_weight.T, spk_time, -time_slice)
+        add_post = stdp(self.stdp, old_weight, time_slice, spk_time)
+        ans = old_weight + add_pre.T + add_post
+
+        self.stdp.count += 2
+
+        # clamp
+        cpos = torch.clamp(ans, self.stdp.wmin, self.stdp.wmax)
+        cneg = torch.clamp(ans, -self.stdp.wmax, -self.stdp.wmin)
+        self.fc1.weight.data = cpos * (ans > 0) + cneg * (ans < 0)
 
     def generate(self) -> List[SignalSource]:
         print(torch.sum(torch.floor(self.fc1.weight.data) != 0, 1).to(self.device),
