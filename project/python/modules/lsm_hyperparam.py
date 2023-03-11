@@ -27,12 +27,14 @@ class LSMNeuronParams:
 class LSMInitializer:
 
     def __init__(self, init: LSMInitParams, weights: LSMNeuronParams):
+        #self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        self.device = torch.device("cpu")
         self.in_size = init.in_size
         self.hidden_size = init.hidden_size
         self.out_size = init.out_size
         self.param = init
         self.weights = weights
-        pass
+        #pass
 
     def init_lsm_conn(self, fc):
         """
@@ -57,13 +59,13 @@ class LSMInitializer:
                 index += 1
                 connection_selection = gu.select(connect_array.size(1) - 1, self.param.fan_in)
                 connection_selection_padding = connection_selection[:index] + [0] + connection_selection[index:]
-                connect_array[i, :] = torch.tensor(connection_selection_padding) * torch.tensor(neuron_list)
+                connect_array[i, :] = torch.tensor(connection_selection_padding).to(self.device) * torch.tensor(neuron_list).to(self.device)
 
             # Check the availability
             generated = gu.check_availability(connect_array)
 
         # Generate weights
-        connect_array *= torch.rand(connect_array.size()) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
+        connect_array *= torch.rand(connect_array.size()).to(self.device) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
 
         # Update weights to fc
         with torch.no_grad():
@@ -77,7 +79,7 @@ class LSMInitializer:
         """
         size = fc.weight.data.size()
         with torch.no_grad():
-            fc.weight.data = torch.rand(size) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
+            fc.weight.data = torch.rand(size).to(self.device) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
 
     def get_lsm_threshold(self):
         t0 = self.weights.tlo
