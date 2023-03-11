@@ -138,30 +138,16 @@ class LSMPool(nn.Module):
         :return:
         """
 
-        def stdp(learner: STDPLearner, weights_old, spk, time_diff):
-            """
-            :param learner:
-            :param weights_old: AxB
-            :param spk: batch x A
-            :param time_diff: batch x B
-            :return:
-            """
-            pos = learner.ap * torch.exp(-abs(time_diff) / learner.tp) * (time_diff > 0)
-            neg = -learner.an * torch.exp(-abs(time_diff) / learner.tn) * (time_diff < 0)
-            valid = (spk == 0) * 1.0
-            return weights_old * (valid.T @ (pos + neg))
-
         time_slice = spk_time[:, self.in_size:self.total_size]
         old_weight = self.fc1.weight
-        add_pre = stdp(self.stdp, old_weight.T, spk_time, -time_slice)
-        add_post = stdp(self.stdp, old_weight, time_slice, spk_time)
+        stdp = self.stdp
+        add_pre = -stdp.an * old_weight.T * (((spk_time == 0) * 1.0).T @ (torch.exp(-abs(time_slice) / stdp.tn)))
+        add_post = stdp.ap * old_weight * (((time_slice == 0) * 1.0).T @ (torch.exp(-abs(spk_time) / stdp.tp)))
         ans = old_weight + add_pre.T + add_post
-
-        self.stdp.count += 2
-
+        stdp.count += torch.sum(spk_time == 0)
         # clamp
-        cpos = torch.clamp(ans, self.stdp.wmin, self.stdp.wmax)
-        cneg = torch.clamp(ans, -self.stdp.wmax, -self.stdp.wmin)
+        cpos = torch.clamp(ans, stdp.wmin, stdp.wmax)
+        cneg = torch.clamp(ans, -stdp.wmax, -stdp.wmin)
         self.fc1.weight.data = cpos * (ans > 0) + cneg * (ans < 0)
 
     def generate(self) -> List[SignalSource]:

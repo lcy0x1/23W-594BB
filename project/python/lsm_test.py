@@ -49,7 +49,7 @@ def build_env():
         net.lsm_train(transform(0, data))
         w1 = net.fc1.weight.data.clone()
 
-        acvtivity = stdp.step() / 2
+        acvtivity = stdp.step()
         variation = torch.sum(torch.square(w0 - w1))
         connected = torch.sum(w1 != 0)
         epochs.set_description(f"LSM activity: {acvtivity} | variation: {variation:.3f} | connected: {connected}")

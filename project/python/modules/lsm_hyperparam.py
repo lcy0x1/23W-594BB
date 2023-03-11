@@ -112,26 +112,6 @@ class STDPLearner:
 
         self.count = 0
 
-    def stdp(self, weights_old, time_diff):
-        """
-        incrase weights for time_diff > 0, else reduce weights
-        :param weights_old: previous weights
-        :param time_diff: T_post - T_pre
-        :return: updated weights (in batch)
-        """
-
-        # plasticity rule
-        pos = self.ap * torch.exp(abs(time_diff) / self.tp)
-        neg = -self.an * torch.exp(abs(time_diff) / self.tn)
-        ans = weights_old * (1 + pos * (time_diff > 0) + neg * (time_diff < 0))
-        # clamp
-        cpos = torch.clamp(ans, self.wmin, self.wmax)
-        cneg = torch.clamp(ans, -self.wmax, -self.wmin)
-        ans = cpos * (ans > 0) + cneg * (ans < 0)
-
-        self.count += 1
-        return ans
-
     def step(self):
         ans = self.count
         self.count = 0
