@@ -25,7 +25,7 @@ class SignalSource:
         return f"{self.id:03d}"
 
     def get_spike(self):
-        return f"spike_{self.id:03d}"
+        return f"spike_hidden[{self.id}]"
 
     def gen_module(self, text: List[str]):
         pass
@@ -107,10 +107,6 @@ class NeuronHidden(NeuronDataImpl):
     def __init__(self, leak, threshold):
         super().__init__(leak, threshold, TYPE_HIDDEN)
 
-    def gen_module(self, text: List[str]):
-        text.append(f"wire {self.get_spike()};")
-        super().gen_module(text)
-
 
 class NeuronReadout(NeuronDataImpl):
 
@@ -145,6 +141,7 @@ def generate(path: str, neurons: List[SignalSource]):
     for n in neurons:
         if n.neuron_type == TYPE_HIDDEN:
             n.produce(neuron_list, ans_list)
+    ans_list.append(f"wire [{len(neuron_list) - 1}:0] spike_hidden;")
     for n in neurons:
         if n.neuron_type == TYPE_HIDDEN:
             n.gen_module(ans_list)
