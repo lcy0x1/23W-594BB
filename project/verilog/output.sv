@@ -1,4 +1,3 @@
-`include "lif.v"
 `timescale 1ns/1ps
 `define DEF_OUTPUT_SIZE 10
 `define DEF_OUTPUT_WIDTH 4
