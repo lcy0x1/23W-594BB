@@ -18,7 +18,7 @@ wire [1:0] status;
 
 assign data_out = {status, result};
 
-wrapper uut(clk, rstn, opcode, acc_data, result, status);
+wrapper uut(clk, rstn, opcode_i, acc_data, result, status);
 
 always @(posedge clk) begin
     if (!rstn) begin
