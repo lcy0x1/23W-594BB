@@ -28,7 +28,7 @@ class LSMPool(nn.Module):
         self.total_size = self.in_size + self.hidden_size
         self.num_steps = optm.num_steps
 
-        #self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        # self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.device = torch.device("cpu")
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False).to(self.device)
@@ -40,7 +40,7 @@ class LSMPool(nn.Module):
                                      learn_threshold=True).to(self.device)
 
         init.init_lsm_conn(self.fc1)
-        #init.init_lsm_conn(self.fctemp)
+        # init.init_lsm_conn(self.fctemp)
         init.init_readout_weight(self.fc2)
         self.stdp = stdp
         self.lsm_learning = True
@@ -159,20 +159,20 @@ class LSMPool(nn.Module):
             ans.append(NeuronDataInput())
         for i in range(self.hidden_size):
             leak = round(self.lsm.beta[i].item())
-            thres = round(self.lsm.threshold[i].item())
+            thres = round(self.lsm.threshold[i].item() / 2 + 0.5)
             ans.append(NeuronHidden(leak, thres))
         for i in range(self.out_size):
             leak = round(self.readout.beta[i].item())
-            thres = round(self.readout.threshold[i].item())
+            thres = round(self.readout.threshold[i].item() / 2 + 0.5)
             ans.append(NeuronReadout(leak, thres))
         for i in range(self.hidden_size):
             for j in range(self.in_size + self.hidden_size):
-                ws = round(self.fc1.weight.data[i][j].item())
+                ws = round(self.fc1.weight.data[i][j].item() / 2 + 0.5)
                 if ws != 0:
                     ans[self.in_size + i].add_conn(NeuronConnection(ans[j], ws))
         for i in range(self.out_size):
             for j in range(self.hidden_size):
-                ws = round(self.fc2.weight.data[i][j].item())
+                ws = round(self.fc2.weight.data[i][j].item() / 2 + 0.5)
                 if ws != 0:
                     ans[self.in_size + self.hidden_size + i].add_conn(NeuronConnection(ans[self.in_size + j], ws))
         return ans

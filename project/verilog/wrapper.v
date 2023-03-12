@@ -25,8 +25,8 @@ wire count_en = count_timer > 0;
 assign status_o = count_en ? 1 : settled ? 2 : 0;
 
 memory #(19, 128, 7) mem(clk, rstn, read_en, write_en, write_data, net_i);
-generated #(9) network(clk, rstn, net_i, net_o);
-output_layer #(9, 10, 4, 7) aggregate(clk, rstn, net_o, count_en, result_o, settled);
+generated #(8) network(clk, rstn, net_i, net_o);
+output_layer #(8, 10, 4, 7) aggregate(clk, rstn, net_o, count_en, result_o, settled);
 
 always @(posedge clk) begin
     if(!rstn) begin

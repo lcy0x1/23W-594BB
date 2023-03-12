@@ -94,7 +94,7 @@ class NeuronDataImpl(SignalSource):
             bid = self.gen_add(text, mid, end)
         wmin = sum([min(0, n.weight) for n in self.fan_in[start:end]])
         wmax = sum([max(0, n.weight) for n in self.fan_in[start:end]])
-        if wmin >= -256 and wmax < 256:
+        if wmin >= -128 and wmax < 128:
             text.append(f"wire `SIG_V sum{idx} = {aid} + {bid};")
             return f"sum{idx}"
         text.append(f"wire `SIG_V sum{idx};")
@@ -123,9 +123,9 @@ class NeuronReadout(NeuronDataImpl):
 def generate(path: str, neurons: List[SignalSource]):
     input_count = sum([1 if i.neuron_type == TYPE_INPUT else 0 for i in neurons])
     output_count = sum([1 if i.neuron_type == TYPE_OUTPUT else 0 for i in neurons])
-    ans_list = ['`include "lif.v"',
+    ans_list = ['`define `SIG_V signed [V_SIZE-1:0]',
                 "`timescale 1ns/1ps",
-                "module generated #(parameter V_SIZE = `DEF_V_SIZE) (",
+                "module generated #(parameter V_SIZE = 8) (",
                 "INDENT",
                 "input wire clk,",
                 "input wire rstn,",
