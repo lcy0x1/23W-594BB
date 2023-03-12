@@ -79,7 +79,8 @@ class LSMInitializer:
         """
         size = fc.weight.data.size()
         with torch.no_grad():
-            fc.weight.data = torch.rand(size).to(self.device) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
+            #fc.weight.data = torch.rand(size).to(self.device) * (self.weights.whi - self.weights.wlo) + self.weights.wlo
+            fc.weight.data = torch.ones(size)
 
     def get_lsm_threshold(self):
         t0 = self.weights.tlo
@@ -87,9 +88,10 @@ class LSMInitializer:
         return torch.rand(self.hidden_size) * dt + t0
 
     def get_readout_threshold(self):
-        t0 = self.weights.tlo
-        dt = self.weights.thi - t0
-        return torch.rand(self.out_size) * dt + t0
+        #t0 = self.weights.tlo
+        #dt = self.weights.thi - t0
+        #return torch.rand(self.out_size) * dt + t0
+        return torch.ones(self.out_size)*16
 
 
 class STDPLearner:

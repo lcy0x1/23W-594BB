@@ -28,7 +28,7 @@ class LSMPool(nn.Module):
         self.total_size = self.in_size + self.hidden_size
         self.num_steps = optm.num_steps
 
-        # self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        #self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.device = torch.device("cpu")
 
         self.fc1 = nn.Linear(self.total_size, self.hidden_size, bias=False).to(self.device)
@@ -40,6 +40,7 @@ class LSMPool(nn.Module):
                                      learn_threshold=True).to(self.device)
 
         init.init_lsm_conn(self.fc1)
+        #init.init_lsm_conn(self.fctemp)
         init.init_readout_weight(self.fc2)
         self.stdp = stdp
         self.lsm_learning = True
@@ -148,7 +149,7 @@ class LSMPool(nn.Module):
         # clamp
         cpos = torch.clamp(ans, stdp.wmin, stdp.wmax)
         cneg = torch.clamp(ans, -stdp.wmax, -stdp.wmin)
-        self.fc1.weight.data = cpos * (ans > 0) + cneg * (ans < 0)
+        self.fc1.weight.data = cpos * (ans > stdp.wmin) + cneg * (ans < -stdp.wmin)
 
     def generate(self) -> List[SignalSource]:
         print(torch.sum(torch.floor(self.fc1.weight.data) != 0, 1).to(self.device),

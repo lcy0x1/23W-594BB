@@ -84,7 +84,7 @@ class Trainer:
                 data = spike_data.to(self.device)
                 targets = targets.to(self.device)
                 spk_rec = self.net(data)
-                acc += SF.accuracy_temporal(spk_rec, targets) * spk_rec.size(1)
+                acc += SF.accuracy_rate(spk_rec, targets) * spk_rec.size(1)
                 total += spk_rec.size(1)
                 self.progress.index = i
                 self.progress.display()
