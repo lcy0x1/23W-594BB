@@ -60,6 +60,7 @@ def test_lsm_gen():
     init = LSMInitializer(param, weights)
     stdp = STDPLearner(ap=0.04, an=0.02, tp=t_decay, tn=t_decay, wmax=weight_max, wmin=0.5)
     net = LSMPool(optm, param, init, stdp)
+    net.load_state_dict(torch.load("./Checkpoints/lsm_stdp_749.pth"))
     ans = net.generate()
     generate("./../verilog/generated.v", ans)
 
@@ -80,4 +81,4 @@ def test_mem_gen():
 
 
 if __name__ == "__main__":
-    test_mem_gen()
+    test_lsm_gen()

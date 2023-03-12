@@ -70,14 +70,19 @@ class NeuronDataImpl(SignalSource):
         for conn in self.fan_in:
             pid = conn.in_neuron.get_id()
             text.append(f"wire `SIG_V x_{pid}_{sid} = {conn.in_neuron.get_spike()} ? {conn.get_weight()} : {zero};")
-        summed = self.gen_add(text, 0, len(self.fan_in))
+        if len(self.fan_in) > 0:
+            summed = self.gen_add(text, 0, len(self.fan_in))
+        else:
+            print(f"Warning: neuron {sid} has {len(self.fan_in)} input.\n")
         text.append(f"lif #(V_SIZE,{self.threshold},{self.leak}) n{sid} "
                     f"(clk, rstn, {summed}, {self.get_spike()});")
 
     def gen_add(self, text, start, end):
         sid = self.get_id()
         idx = f"_{sid}_{start:03d}_{end - 1:03d}"
-        if end - start == 2:
+        if end - start == 1:
+            return f"x_{self.fan_in[start].in_neuron.get_id()}_{sid}"
+        elif end - start == 2:
             aid = f"x_{self.fan_in[start].in_neuron.get_id()}_{sid}"
             bid = f"x_{self.fan_in[end - 1].in_neuron.get_id()}_{sid}"
         elif end - start == 3:
@@ -87,6 +92,11 @@ class NeuronDataImpl(SignalSource):
             mid = math.floor((start + end) / 2)
             aid = self.gen_add(text, start, mid)
             bid = self.gen_add(text, mid, end)
+        wmin = sum([min(0, n.weight) for n in self.fan_in[start:end]])
+        wmax = sum([max(0, n.weight) for n in self.fan_in[start:end]])
+        if wmin >= -256 and wmax < 256:
+            text.append(f"wire `SIG_V sum{idx} = {aid} + {bid};")
+            return f"sum{idx}"
         text.append(f"wire `SIG_V sum{idx};")
         text.append(f"clipped_adder #(V_SIZE) add{idx}({aid}, {bid}, sum{idx});")
         return f"sum{idx}"
