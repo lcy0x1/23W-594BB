@@ -2,6 +2,7 @@
 `define DEF_OUTPUT_SIZE 10
 `define DEF_OUTPUT_WIDTH 4
 `define DEF_COUNTER_WIDTH 8
+`define DEF_V_SIZE 4
 
 /* This module counts the spikes from the network till the valid bit goes low.
  * Then it will output the channel with the highest spike count
@@ -39,7 +40,6 @@ end
 always @(posedge clk) begin
     integer i;
     if (rstn==0) begin
-        result <= 0;
         out_valid <= 0;
         valid_prev <= 0;
         for (i = 0; i < OUTPUT_SIZE; i++) begin

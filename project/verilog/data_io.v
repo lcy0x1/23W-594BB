@@ -2,18 +2,18 @@ module data_io(
     input clk,
     input rstn,
     input [22:0] data_in,
-    output [9:0] data_out
+    output [5:0] data_out
 );
 
-wire opcode_i = data_in[22:21];
-wire parity_i = data_in[20:19]; // high bit: write enable, low bit: 1/0 = msb/lsb
-wire indata_i = data_in[18:0];
+wire [1:0] opcode_i = data_in[22:21];
+wire [1:0] parity_i = data_in[20:19]; // high bit: write enable, low bit: 1/0 = msb/lsb
+wire [18:0] indata_i = data_in[18:0];
 
 reg [1:0] data_parity;
 reg [18:0] acc_data;
 reg data_valid;
 
-wire [6:0] result;
+wire [3:0] result;
 wire [1:0] status;
 
 assign data_out = {status, result};

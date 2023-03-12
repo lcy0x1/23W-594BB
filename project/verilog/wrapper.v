@@ -6,7 +6,7 @@ module wrapper(
     input rstn,
     input [1:0] opcode_i, // 0 = idle, 1 = write, 2 = info
     input [18:0] data_in,
-    output [6:0] result_o,
+    output [3:0] result_o,
     output [1:0] status_o // 0 = idle, 1 = busy, 2 = idle + result
 );
 
@@ -26,7 +26,7 @@ assign status_o = count_en ? 1 : settled ? 2 : 0;
 
 memory #(19, 128, 7) mem(clk, rstn, read_en, write_en, write_data, net_i);
 generated #(9) network(clk, rstn, net_i, net_o);
-output_layer #(9, 10, 128, 7) aggregate(clk, rstn, net_o, count_en, result_o, settled);
+output_layer #(9, 10, 4, 7) aggregate(clk, rstn, net_o, count_en, result_o, settled);
 
 always @(posedge clk) begin
     if(!rstn) begin
