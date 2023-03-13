@@ -61,6 +61,22 @@ class LSMPool(nn.Module):
         x, _ = self._forward_readout(max_t, x)
         return x
 
+    def forward_lsm_only(self, x):
+        """
+        Please call with torch.no_grad() to prevent gradient calculation
+        :param x: Tensor with size (time_step, batch_size, input_size)
+        :return:
+        """
+
+        self.lsm_learning = False
+        batch_size = x.size(1)
+        max_t = self.num_steps
+        assert x.size() == (max_t, batch_size, self.in_size)
+        with torch.no_grad():
+            x, _ = self._forward_lsm(max_t, batch_size, x)
+        return x
+
+
     def lsm_train(self, x):
         self.lsm_learning = True
         batch_size = x.size(1)
